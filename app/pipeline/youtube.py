@@ -71,6 +71,32 @@ async def download_video(session_id: str, youtube_url: str) -> dict:
     return {"path": str(out_path), "duration_sec": duration, "title": title}
 
 
+async def trim_video(session_id: str, start_sec: float, end_sec: float) -> dict:
+    """Trim source.mp4 in-place to [start_sec, end_sec].
+
+    Re-encodes (not stream copy) so the output has frame-accurate cuts and
+    timestamps reset to 0 — downstream tools (transcribe, get_frames,
+    isolate_voice) reference timestamps relative to the trimmed file.
+    """
+    out_dir = settings.session_dir(session_id)
+    src = out_dir / "source.mp4"
+    tmp = out_dir / "source_trim.mp4"
+    rc, _, stderr = await _run([
+        "ffmpeg", "-y",
+        "-ss", f"{start_sec:.3f}", "-to", f"{end_sec:.3f}",
+        "-i", str(src),
+        "-c:v", "libx264", "-preset", "veryfast", "-crf", "20",
+        "-c:a", "aac", "-b:a", "128k",
+        "-movflags", "+faststart",
+        str(tmp),
+    ])
+    if rc != 0:
+        raise RuntimeError(f"ffmpeg trim_video failed: {stderr.strip()[-400:]}")
+    tmp.replace(src)
+    duration = await ffprobe_duration(src)
+    return {"path": str(src), "duration_sec": duration}
+
+
 async def extract_audio(session_id: str) -> dict:
     """Extract audio (m4a) from the downloaded video for transcription."""
     out_dir = settings.session_dir(session_id)

@@ -19,15 +19,41 @@ router = APIRouter()
 _YT_RE = re.compile(r"^https?://(www\.)?(youtube\.com|youtu\.be)/", re.IGNORECASE)
 
 
+def _parse_time(value: str | None) -> float | None:
+    """Parse '1:30', '90', '1:30:00' into seconds. Returns None if blank."""
+    if not value:
+        return None
+    value = value.strip()
+    if not value:
+        return None
+    parts = value.split(":")
+    try:
+        if len(parts) == 1:
+            return float(parts[0])
+        elif len(parts) == 2:
+            return int(parts[0]) * 60 + float(parts[1])
+        else:
+            return int(parts[0]) * 3600 + int(parts[1]) * 60 + float(parts[2])
+    except ValueError:
+        return None
+
+
 @router.post("/sessions")
-async def create_session(youtube_url: str = Form(...), direction: str | None = Form(None)):
+async def create_session(
+    youtube_url: str = Form(...),
+    direction: str | None = Form(None),
+    clip_start: str | None = Form(None),
+    clip_end: str | None = Form(None),
+):
     youtube_url = youtube_url.strip()
     if not _YT_RE.search(youtube_url):
         return RedirectResponse("/?error=invalid_url", status_code=303)
     direction = (direction or "").strip() or None
+    clip_start_sec = _parse_time(clip_start)
+    clip_end_sec = _parse_time(clip_end)
 
     session_id = uuid.uuid4().hex
-    db.create_session(session_id, youtube_url, direction)
+    db.create_session(session_id, youtube_url, direction, clip_start_sec, clip_end_sec)
     asyncio.create_task(runner.run(session_id))
     return RedirectResponse(f"/sessions/{session_id}", status_code=303)
 

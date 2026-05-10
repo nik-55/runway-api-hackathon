@@ -5,52 +5,134 @@
   <title>{% block title %}ReelAgent{% endblock %}</title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <style>
-    :root { color-scheme: dark; }
-    * { box-sizing: border-box; }
+    :root {
+      --bg: #f9fafb;
+      --surface: #ffffff;
+      --surface2: #f3f4f6;
+      --border: #e5e7eb;
+      --border2: #d1d5db;
+      --text: #111827;
+      --text-2: #374151;
+      --muted: #6b7280;
+      --muted2: #9ca3af;
+      --accent: #2563eb;
+      --accent-hover: #1d4ed8;
+      --green: #16a34a;
+      --red: #dc2626;
+      --yellow: #d97706;
+      --purple: #7c3aed;
+      --teal: #0891b2;
+      --radius: 8px;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
     body {
-      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-      background: #0b0d10; color: #d8dee4;
-      max-width: 980px; margin: 0 auto; padding: 24px 16px;
-      line-height: 1.5;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      max-width: 960px;
+      margin: 0 auto;
+      padding: 32px 20px 64px;
+      line-height: 1.6;
+      font-size: 15px;
     }
-    h1, h2, h3 { color: #fff; font-weight: 600; }
-    a { color: #6ec1ff; text-decoration: none; }
+    h1, h2, h3 { color: var(--text); font-weight: 600; line-height: 1.3; }
+    a { color: var(--accent); text-decoration: none; }
     a:hover { text-decoration: underline; }
-    input, textarea, button {
-      font-family: inherit; font-size: 14px;
-      background: #14181d; border: 1px solid #2a323b; color: #d8dee4;
-      padding: 8px 10px; border-radius: 6px;
+    code {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      font-size: 12px;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      padding: 1px 5px;
+      border-radius: 4px;
     }
-    button { cursor: pointer; background: #1f6feb; border-color: #1f6feb; color: white; }
-    button:hover { background: #2a7df0; }
-    button.secondary { background: #2a323b; border-color: #2a323b; }
-    .row { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
+    pre {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      font-size: 12px;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 12px 14px;
+      overflow-x: auto;
+      white-space: pre-wrap;
+      word-break: break-word;
+      color: var(--text-2);
+    }
+    input, textarea, select {
+      font-family: inherit;
+      font-size: 14px;
+      background: var(--surface);
+      border: 1.5px solid var(--border2);
+      color: var(--text);
+      padding: 9px 12px;
+      border-radius: var(--radius);
+      outline: none;
+      transition: border-color 0.15s;
+    }
+    input:focus, textarea:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(37,99,235,0.1); }
+    button {
+      font-family: inherit;
+      font-size: 14px;
+      font-weight: 500;
+      cursor: pointer;
+      background: var(--accent);
+      border: none;
+      color: white;
+      padding: 9px 18px;
+      border-radius: var(--radius);
+      transition: background 0.15s;
+    }
+    button:hover { background: var(--accent-hover); }
+    button.secondary {
+      background: var(--surface);
+      border: 1.5px solid var(--border2);
+      color: var(--text-2);
+    }
+    button.secondary:hover { background: var(--surface2); }
+    .row { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+    .muted { color: var(--muted); }
     .badge {
-      display: inline-block; padding: 2px 8px; border-radius: 999px;
-      font-size: 12px; background: #14181d; border: 1px solid #2a323b;
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      padding: 3px 10px;
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: 500;
+      border: 1.5px solid;
     }
-    .badge.queued { color: #f0c674; }
-    .badge.running { color: #6ec1ff; }
-    .badge.completed { color: #8fd175; }
-    .badge.failed { color: #f06b6b; }
-    .panel { background: #11151a; border: 1px solid #1d242c; border-radius: 8px; padding: 16px; margin: 16px 0; }
-    .event { padding: 8px 10px; border-bottom: 1px solid #1d242c; }
-    .event:last-child { border-bottom: none; }
-    .event .ts { color: #6c7681; font-size: 12px; }
-    .event .type { color: #6ec1ff; font-weight: 600; }
-    pre { background: #0e1216; border: 1px solid #1d242c; border-radius: 6px; padding: 12px; overflow-x: auto; font-size: 12px; }
-    details summary { cursor: pointer; color: #aab; }
-    details[open] summary { color: #fff; }
-    table { width: 100%; border-collapse: collapse; }
-    th, td { text-align: left; padding: 8px 10px; border-bottom: 1px solid #1d242c; }
-    th { color: #aab; font-weight: 500; font-size: 12px; }
-    .dim { color: #6c7681; }
+    .badge.queued   { color: var(--yellow); border-color: #fde68a; background: #fffbeb; }
+    .badge.running  { color: var(--accent);  border-color: #bfdbfe; background: #eff6ff; }
+    .badge.completed { color: var(--green); border-color: #bbf7d0; background: #f0fdf4; }
+    .badge.failed   { color: var(--red);   border-color: #fecaca; background: #fef2f2; }
+    .card {
+      background: var(--surface);
+      border: 1.5px solid var(--border);
+      border-radius: var(--radius);
+      padding: 20px 24px;
+      margin-bottom: 20px;
+    }
+    details summary {
+      cursor: pointer;
+      user-select: none;
+      list-style: none;
+    }
+    details summary::-webkit-details-marker { display: none; }
+    details summary::before {
+      content: "▶";
+      font-size: 10px;
+      margin-right: 6px;
+      display: inline-block;
+      transition: transform 0.15s;
+      color: var(--muted2);
+    }
+    details[open] summary::before { transform: rotate(90deg); }
   </style>
 </head>
 <body>
-  <header style="margin-bottom: 24px;">
-    <h1 style="margin: 0;"><a href="/">ReelAgent</a></h1>
-    <div class="dim" style="font-size: 13px;">YouTube → 20-second reaction reel.</div>
+  <header style="margin-bottom: 32px; display: flex; align-items: baseline; gap: 14px;">
+    <h1 style="font-size: 20px;"><a href="/" style="color: var(--text);">ReelAgent</a></h1>
+    <span class="muted" style="font-size: 13px;">YouTube → reaction reel</span>
   </header>
   {% block content %}{% endblock %}
 </body>

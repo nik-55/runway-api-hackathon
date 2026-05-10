@@ -57,6 +57,11 @@ def _connect() -> sqlite3.Connection:
         _conn.execute("PRAGMA foreign_keys=ON")
         with _lock:
             _conn.executescript(_SCHEMA)
+            for col_def in ("clip_start_sec REAL", "clip_end_sec REAL"):
+                try:
+                    _conn.execute(f"ALTER TABLE sessions ADD COLUMN {col_def}")
+                except sqlite3.OperationalError:
+                    pass
     return _conn
 
 
@@ -74,6 +79,8 @@ class Session:
     updated_at: int
     output_path: str | None
     failure: str | None
+    clip_start_sec: float | None = None
+    clip_end_sec: float | None = None
 
     @classmethod
     def from_row(cls, row: sqlite3.Row) -> "Session":
@@ -103,14 +110,20 @@ class Event:
 
 # ---------- sessions ----------
 
-def create_session(session_id: str, youtube_url: str, direction: str | None) -> Session:
+def create_session(
+    session_id: str,
+    youtube_url: str,
+    direction: str | None,
+    clip_start_sec: float | None = None,
+    clip_end_sec: float | None = None,
+) -> Session:
     conn = _connect()
     ts = now()
     with _lock:
         conn.execute(
-            "INSERT INTO sessions (id, youtube_url, direction, status, created_at, updated_at) "
-            "VALUES (?, ?, ?, 'queued', ?, ?)",
-            (session_id, youtube_url, direction, ts, ts),
+            "INSERT INTO sessions (id, youtube_url, direction, status, created_at, updated_at, clip_start_sec, clip_end_sec) "
+            "VALUES (?, ?, ?, 'queued', ?, ?, ?, ?)",
+            (session_id, youtube_url, direction, ts, ts, clip_start_sec, clip_end_sec),
         )
     return get_session(session_id)  # type: ignore
 

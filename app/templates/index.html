@@ -1,39 +1,53 @@
 {% extends "base.html" %}
 {% block content %}
-<section class="panel">
-  <h2 style="margin-top: 0;">New reel</h2>
-  <form method="post" action="/sessions">
-    <div class="row" style="margin-bottom: 8px;">
-      <input name="youtube_url" placeholder="https://www.youtube.com/watch?v=..." required style="flex: 1; min-width: 280px;">
-    </div>
-    <div class="row" style="margin-bottom: 8px;">
-      <input name="direction" placeholder="Optional direction — &quot;roast it&quot;, &quot;explain why this matters&quot;..." style="flex: 1; min-width: 280px;">
-    </div>
-    <button type="submit">Generate</button>
-  </form>
-</section>
 
-<section class="panel">
-  <h2 style="margin-top: 0;">Sessions</h2>
+<div class="card">
+  <h2 style="margin-bottom: 16px; font-size: 17px;">New reel</h2>
+  <form method="post" action="/sessions">
+    <div style="display: flex; flex-direction: column; gap: 10px;">
+      <input name="youtube_url" placeholder="https://www.youtube.com/watch?v=…" required style="width: 100%;">
+      <input name="direction" placeholder='Optional direction — "roast it", "explain why this matters"…' style="width: 100%;">
+      <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
+        <div style="display: flex; align-items: center; gap: 6px;">
+          <label for="clip_start" style="font-size: 13px; color: var(--muted); white-space: nowrap;">Clip</label>
+          <input id="clip_start" name="clip_start" placeholder="0:00" style="width: 80px; font-size: 13px;" title="Start time, e.g. 1:30">
+          <span style="color: var(--muted); font-size: 13px;">→</span>
+          <input name="clip_end" placeholder="end" style="width: 80px; font-size: 13px;" title="End time, e.g. 3:45">
+        </div>
+        <button type="submit">Generate reel</button>
+      </div>
+    </div>
+  </form>
+</div>
+
+<div class="card">
+  <h2 style="margin-bottom: 16px; font-size: 17px;">Sessions</h2>
   {% if sessions %}
-  <table>
+  <table style="width: 100%; border-collapse: collapse;">
     <thead>
-      <tr><th>Status</th><th>URL</th><th>Direction</th><th>Created</th><th></th></tr>
+      <tr>
+        <th style="text-align:left; padding: 6px 10px; font-size: 12px; font-weight: 500; color: var(--muted); border-bottom: 1.5px solid var(--border);">Status</th>
+        <th style="text-align:left; padding: 6px 10px; font-size: 12px; font-weight: 500; color: var(--muted); border-bottom: 1.5px solid var(--border);">URL</th>
+        <th style="text-align:left; padding: 6px 10px; font-size: 12px; font-weight: 500; color: var(--muted); border-bottom: 1.5px solid var(--border);">Direction</th>
+        <th style="text-align:left; padding: 6px 10px; font-size: 12px; font-weight: 500; color: var(--muted); border-bottom: 1.5px solid var(--border);">Created</th>
+        <th style="border-bottom: 1.5px solid var(--border);"></th>
+      </tr>
     </thead>
     <tbody>
       {% for s in sessions %}
-      <tr>
-        <td><span class="badge {{ s.status }}">{{ s.status }}</span></td>
-        <td style="max-width: 320px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;"><a href="{{ s.youtube_url }}" title="{{ s.youtube_url }}">{{ s.youtube_url }}</a></td>
-        <td class="dim">{{ s.direction or "—" }}</td>
-        <td class="dim">{{ s.created_at }}</td>
-        <td><a href="/sessions/{{ s.id }}">view →</a></td>
+      <tr style="transition: background 0.1s;">
+        <td style="padding: 9px 10px; border-bottom: 1px solid var(--border);"><span class="badge {{ s.status }}">{{ s.status }}</span></td>
+        <td style="padding: 9px 10px; border-bottom: 1px solid var(--border); max-width: 280px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 13px;"><a href="{{ s.youtube_url }}" title="{{ s.youtube_url }}">{{ s.youtube_url }}</a></td>
+        <td style="padding: 9px 10px; border-bottom: 1px solid var(--border); font-size: 13px; color: var(--muted);">{{ s.direction or "—" }}</td>
+        <td style="padding: 9px 10px; border-bottom: 1px solid var(--border); font-size: 12px; color: var(--muted); white-space: nowrap;">{{ s.created_at }}</td>
+        <td style="padding: 9px 10px; border-bottom: 1px solid var(--border);"><a href="/sessions/{{ s.id }}" style="font-size: 13px;">view →</a></td>
       </tr>
       {% endfor %}
     </tbody>
   </table>
   {% else %}
-  <p class="dim">No sessions yet.</p>
+  <p class="muted" style="font-size: 14px;">No sessions yet. Paste a YouTube URL above to get started.</p>
   {% endif %}
-</section>
+</div>
+
 {% endblock %}

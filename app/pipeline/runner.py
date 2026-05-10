@@ -69,6 +69,13 @@ async def run(session_id: str) -> None:
         ctx.source_video_path = dl["path"]
         ctx.source_duration_sec = float(dl.get("duration_sec") or 0.0)
 
+        if sess.clip_start_sec is not None or sess.clip_end_sec is not None:
+            clip_start = sess.clip_start_sec or 0.0
+            clip_end = sess.clip_end_sec or ctx.source_duration_sec
+            tr = await _step(session_id, "trim_video", "trim_video",
+                             youtube.trim_video, session_id, clip_start, clip_end)
+            ctx.source_duration_sec = float(tr["duration_sec"])
+
         ea = await _step(session_id, "extract_audio", "extract_audio",
                          youtube.extract_audio, session_id)
         ctx.source_audio_path = ea["path"]

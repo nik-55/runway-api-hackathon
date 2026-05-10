@@ -1,52 +1,247 @@
 {% extends "base.html" %}
 {% block title %}Session {{ session.id[:8] }} — ReelAgent{% endblock %}
 {% block content %}
-<section class="panel">
-  <div class="row">
-    <h2 style="margin: 0;">Session {{ session.id[:8] }}</h2>
-    <span id="status-badge" class="badge {{ session.status }}">{{ session.status }}</span>
-  </div>
-  <div class="dim" style="margin-top: 6px; word-break: break-all;">
-    <a href="{{ session.youtube_url }}">{{ session.youtube_url }}</a>
-  </div>
-  {% if session.direction %}<div style="margin-top: 4px;">direction: <code>{{ session.direction }}</code></div>{% endif %}
-  {% if session.failure %}<div style="margin-top: 8px; color: #f06b6b;">failure: {{ session.failure }}</div>{% endif %}
 
-  <div id="player-slot" style="margin-top: 12px;">
-    {% if session.status == "completed" and session.output_path %}
-    <video controls width="360" src="/{{ session.output_path }}"></video>
-    <div><a href="/{{ session.output_path }}" download>Download</a></div>
+<style>
+  .ev {
+    display: flex;
+    gap: 12px;
+    padding: 10px 0;
+    border-bottom: 1px solid var(--border);
+    font-size: 13.5px;
+    align-items: flex-start;
+  }
+  .ev:last-child { border-bottom: none; }
+  .ev-icon {
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 11px;
+    flex-shrink: 0;
+    margin-top: 1px;
+  }
+  .ev-body { flex: 1; min-width: 0; }
+  .ev-meta { font-size: 11px; color: var(--muted2); margin-bottom: 3px; }
+  .ev-label { font-weight: 500; color: var(--muted); font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; }
+
+  /* step events */
+  .ev.step-started .ev-icon  { background: #dbeafe; color: var(--accent); }
+  .ev.step-completed .ev-icon { background: #dcfce7; color: var(--green); }
+  .ev.step-failed .ev-icon   { background: #fee2e2; color: var(--red); }
+
+  /* agent events */
+  .ev.agent-thinking .ev-icon  { background: #ede9fe; color: var(--purple); }
+  .ev.agent-message .ev-icon   { background: #fff7ed; color: #ea580c; }
+  .ev.agent-tool-call .ev-icon { background: #cffafe; color: var(--teal); }
+  .ev.agent-tool-result .ev-icon { background: #f0fdf4; color: var(--green); }
+  .ev.agent-final .ev-icon     { background: #fef9c3; color: #ca8a04; }
+
+  /* session events */
+  .ev.session-completed .ev-icon { background: #dcfce7; color: var(--green); }
+  .ev.session-failed .ev-icon    { background: #fee2e2; color: var(--red); }
+
+  /* collapsible panels */
+  .ev-collapse summary {
+    color: var(--muted);
+    font-size: 12px;
+    padding: 4px 0;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+  .ev-collapse summary:hover { color: var(--text-2); }
+  .ev-collapse[open] summary { color: var(--text-2); }
+  .ev-collapse pre { margin-top: 8px; font-size: 11.5px; }
+
+  /* agent.message long-text truncation */
+  .msg-body {
+    color: var(--text-2);
+    white-space: pre-wrap;
+    word-break: break-word;
+    line-height: 1.6;
+  }
+  .msg-body.truncated { max-height: 80px; overflow: hidden; position: relative; }
+  .msg-body.truncated::after {
+    content: "";
+    position: absolute;
+    bottom: 0; left: 0; right: 0;
+    height: 32px;
+    background: linear-gradient(transparent, white);
+  }
+  .msg-toggle {
+    background: none;
+    border: none;
+    padding: 2px 0;
+    font-size: 12px;
+    color: var(--accent);
+    cursor: pointer;
+    margin-top: 4px;
+  }
+  .msg-toggle:hover { background: none; text-decoration: underline; }
+
+  /* tool call args */
+  .tool-args {
+    color: var(--text-2);
+    word-break: break-all;
+  }
+</style>
+
+<!-- Session header -->
+<div class="card" style="margin-bottom: 20px;">
+  <div style="display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 8px;">
+    <h2 style="font-size: 17px;">Session <code style="font-size: 14px; background: none; border: none; padding: 0;">{{ session.id[:8] }}</code></h2>
+    <span id="status-badge" class="badge {{ session.status }}">{{ session.status }}</span>
+    {% if session.status in ("failed",) %}
+    <form method="post" action="/sessions/{{ session.id }}/resume" style="margin-left: auto;">
+      <button type="submit" class="secondary" style="font-size: 13px; padding: 6px 14px;">↩ Resume</button>
+    </form>
     {% endif %}
   </div>
-
-  {% if session.status in ("failed",) %}
-  <form method="post" action="/sessions/{{ session.id }}/resume" style="margin-top: 12px;">
-    <button type="submit" class="secondary">Resume</button>
-  </form>
+  <div style="font-size: 13px; color: var(--muted); word-break: break-all;">
+    <a href="{{ session.youtube_url }}">{{ session.youtube_url }}</a>
+  </div>
+  {% if session.direction %}
+  <div style="margin-top: 6px; font-size: 13px; color: var(--muted);">Direction: <em>{{ session.direction }}</em></div>
   {% endif %}
-</section>
+  {% if session.clip_start_sec is not none or session.clip_end_sec is not none %}
+  <div style="margin-top: 6px; font-size: 13px; color: var(--muted);">
+    Clip:
+    {% macro fmt(s) %}{% set s = s|int %}{% if s >= 3600 %}{{ (s // 3600) }}:{{ '%02d' % ((s % 3600) // 60) }}:{{ '%02d' % (s % 60) }}{% else %}{{ (s // 60) }}:{{ '%02d' % (s % 60) }}{% endif %}{% endmacro %}
+    {{ fmt(session.clip_start_sec or 0) }} → {{ fmt(session.clip_end_sec) if session.clip_end_sec is not none else "end" }}
+  </div>
+  {% endif %}
+  {% if session.failure %}
+  <div style="margin-top: 8px; font-size: 13px; color: var(--red); background: #fef2f2; border: 1px solid #fecaca; border-radius: 6px; padding: 8px 12px;">{{ session.failure }}</div>
+  {% endif %}
 
-<section class="panel">
-  <h3 style="margin-top: 0;">Activity</h3>
+  <div id="player-slot" style="margin-top: 16px;">
+    {% if session.status == "completed" and session.output_path %}
+    <video controls style="max-width: 480px; width: 100%; border-radius: 8px; background: #000;" src="/{{ session.output_path }}"></video>
+    <div style="margin-top: 8px;"><a href="/{{ session.output_path }}" download style="font-size: 13px;">↓ Download</a></div>
+    {% endif %}
+  </div>
+</div>
+
+<!-- Activity feed -->
+<div class="card">
+  <h3 style="font-size: 15px; margin-bottom: 16px; color: var(--muted); font-weight: 500; text-transform: uppercase; letter-spacing: 0.05em; font-size: 11px;">Activity</h3>
   <div id="events">
     {% for ev in events %}
-    <div class="event">
-      <div class="ts">seq {{ ev.seq }} <span class="type">{{ ev.type }}</span></div>
-      {% if ev.type == "step.started" %}→ {{ ev.payload.name }}
-      {% elif ev.type == "step.completed" %}✓ {{ ev.payload.name }}
-      {% elif ev.type == "step.failed" %}✗ {{ ev.payload.name }} — {{ ev.payload.error }}
-      {% elif ev.type == "agent.thinking" %}<details><summary>thinking</summary><pre>{{ ev.payload.content }}</pre></details>
-      {% elif ev.type == "agent.message" %}<blockquote style="margin:4px 0 0;padding-left:10px;border-left:3px solid #2a323b;white-space:pre-wrap;">{{ ev.payload.content }}</blockquote>
-      {% elif ev.type == "agent.tool_call" %}→ <code>{{ ev.payload.name }}({{ ev.payload.arguments|tojson }})</code>
-      {% elif ev.type == "agent.tool_result" %}← <code>{{ ev.payload.name }}</code>
-      {% elif ev.type == "session.completed" %}★ output ready
-      {% elif ev.type == "session.failed" %}✗ {{ ev.payload.error }}
-      {% else %}<pre>{{ ev.payload|tojson }}</pre>
-      {% endif %}
+    {% set p = ev.payload %}
+    {% if ev.type == "step.started" %}
+    <div class="ev step-started">
+      <div class="ev-icon">→</div>
+      <div class="ev-body">
+        <div class="ev-label">step started</div>
+        <div>{{ p.name }}</div>
+      </div>
     </div>
+    {% elif ev.type == "step.completed" %}
+    <div class="ev step-completed">
+      <div class="ev-icon">✓</div>
+      <div class="ev-body">
+        <div class="ev-label">step done</div>
+        <details class="ev-collapse">
+          <summary>{{ p.name }}</summary>
+          <pre>{{ p.result|tojson(indent=2) }}</pre>
+        </details>
+      </div>
+    </div>
+    {% elif ev.type == "step.failed" %}
+    <div class="ev step-failed">
+      <div class="ev-icon">✗</div>
+      <div class="ev-body">
+        <div class="ev-label">step failed</div>
+        <div>{{ p.name }} — {{ p.error }}</div>
+      </div>
+    </div>
+    {% elif ev.type == "agent.thinking" %}
+    <div class="ev agent-thinking">
+      <div class="ev-icon">💭</div>
+      <div class="ev-body">
+        <details class="ev-collapse">
+          <summary><span class="ev-label">thinking</span>&nbsp;<span style="color:var(--muted2);">({{ p.content|length }} chars)</span></summary>
+          <pre>{{ p.content }}</pre>
+        </details>
+      </div>
+    </div>
+    {% elif ev.type == "agent.message" %}
+    <div class="ev agent-message">
+      <div class="ev-icon">◉</div>
+      <div class="ev-body">
+        <div class="ev-label" style="margin-bottom: 4px;">agent</div>
+        {% if p.content|length > 300 %}
+        <details class="ev-collapse">
+          <summary>message <span style="color:var(--muted2);">({{ p.content|length }} chars)</span></summary>
+          <div class="msg-body" style="margin-top: 6px;">{{ p.content }}</div>
+        </details>
+        {% else %}
+        <div class="msg-body">{{ p.content }}</div>
+        {% endif %}
+      </div>
+    </div>
+    {% elif ev.type == "agent.tool_call" %}
+    <div class="ev agent-tool-call">
+      <div class="ev-icon">⚙</div>
+      <div class="ev-body">
+        <div class="ev-label" style="margin-bottom: 3px;">tool call</div>
+        <details class="ev-collapse">
+          <summary><code style="background:none;border:none;padding:0;font-size:13px;color:var(--teal);font-weight:600;">{{ p.name }}</code></summary>
+          <pre>{{ p.arguments|tojson(indent=2) }}</pre>
+        </details>
+      </div>
+    </div>
+    {% elif ev.type == "agent.tool_result" %}
+    <div class="ev agent-tool-result">
+      <div class="ev-icon">←</div>
+      <div class="ev-body">
+        <div class="ev-label" style="margin-bottom: 3px;">tool result</div>
+        <details class="ev-collapse">
+          <summary><code style="background:none;border:none;padding:0;font-size:13px;">{{ p.name }}</code></summary>
+          <pre>{{ p.result|tojson(indent=2) }}</pre>
+        </details>
+      </div>
+    </div>
+    {% elif ev.type == "agent.final" %}
+    <div class="ev agent-final">
+      <div class="ev-icon">★</div>
+      <div class="ev-body">
+        <div class="ev-label">plan finalized</div>
+      </div>
+    </div>
+    {% elif ev.type == "session.completed" %}
+    <div class="ev session-completed">
+      <div class="ev-icon">✓</div>
+      <div class="ev-body">
+        <div class="ev-label">done</div>
+        <div style="font-weight: 500;">Output ready</div>
+      </div>
+    </div>
+    {% elif ev.type == "session.failed" %}
+    <div class="ev session-failed">
+      <div class="ev-icon">✗</div>
+      <div class="ev-body">
+        <div class="ev-label">failed</div>
+        <div>{{ p.error }}</div>
+      </div>
+    </div>
+    {% else %}
+    <div class="ev">
+      <div class="ev-icon" style="background:var(--surface2);">·</div>
+      <div class="ev-body">
+        <details class="ev-collapse">
+          <summary class="ev-label">{{ ev.type }}</summary>
+          <pre>{{ p|tojson(indent=2) }}</pre>
+        </details>
+      </div>
+    </div>
+    {% endif %}
     {% endfor %}
   </div>
-</section>
+</div>
 
 <script>
 (function() {
@@ -55,61 +250,106 @@
   const statusEl = document.getElementById("status-badge");
   const playerSlot = document.getElementById("player-slot");
 
-  function fmtTime(unix) {
-    return new Date(unix * 1000).toLocaleTimeString();
-  }
+  function esc(s) { return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;"); }
 
   function shortJson(v, max) {
-    try {
-      const s = JSON.stringify(v);
-      return s.length > max ? s.slice(0, max) + "…" : s;
-    } catch (e) { return String(v); }
+    try { const s = JSON.stringify(v, null, 2); return s.length > max ? s.slice(0, max) + "\n…" : s; }
+    catch(e) { return String(v); }
+  }
+
+  function collapsible(label, contentHtml, extraSummary) {
+    const extra = extraSummary ? ` <span style="color:var(--muted2);">${extra}</span>` : "";
+    return `<details class="ev-collapse"><summary><span class="ev-label">${label}</span>${extraSummary||""}</summary>${contentHtml}</details>`;
   }
 
   function render(msg) {
     const wrap = document.createElement("div");
-    wrap.className = "event";
-    const ts = fmtTime(msg.created_at || (Date.now() / 1000));
-    let html = `<div class="ts">${ts} <span class="type">${msg.type}</span></div>`;
     const p = msg.payload || {};
+    const t = msg.type;
 
-    if (msg.type === "step.started") html += `→ ${p.name}`;
-    else if (msg.type === "step.completed") html += `✓ ${p.name} <details><summary>result</summary><pre>${shortJson(p.result, 4000)}</pre></details>`;
-    else if (msg.type === "step.failed") html += `✗ ${p.name} — ${p.error}`;
-    else if (msg.type === "agent.thinking") html += `<details><summary>thinking (${(p.content||"").length} chars)</summary><pre>${(p.content||"").replace(/</g,"&lt;")}</pre></details>`;
-    else if (msg.type === "agent.message") html += `<blockquote style="margin: 4px 0 0; padding-left: 10px; border-left: 3px solid #2a323b; white-space: pre-wrap;">${(p.content||"").replace(/</g,"&lt;")}</blockquote>`;
-    else if (msg.type === "agent.tool_call") html += `→ <code>${p.name}(${shortJson(p.arguments, 240)})</code>`;
-    else if (msg.type === "agent.tool_result") html += `← <code>${p.name}</code> <details><summary>result</summary><pre>${shortJson(p.result, 4000)}</pre></details>`;
-    else if (msg.type === "agent.final") html += `★ plan finalized`;
-    else if (msg.type === "session.completed") {
-      html += `★ output ready`;
+    let cls = t.replace(/\./g, "-");
+    wrap.className = `ev ${cls}`;
+
+    let icon = "·";
+    let label = t;
+    let body = "";
+    let iconStyle = "background:var(--surface2); color:var(--muted);";
+
+    if (t === "step.started") {
+      icon = "→"; iconStyle = "background:#dbeafe;color:var(--accent);";
+      label = "step started";
+      body = `<div>${esc(p.name||"")}</div>`;
+    } else if (t === "step.completed") {
+      icon = "✓"; iconStyle = "background:#dcfce7;color:var(--green);";
+      label = "step done";
+      body = collapsible(esc(p.name||""), `<pre>${esc(shortJson(p.result, 4000))}</pre>`);
+    } else if (t === "step.failed") {
+      icon = "✗"; iconStyle = "background:#fee2e2;color:var(--red);";
+      label = "step failed";
+      body = `<div>${esc(p.name||"")} — ${esc(p.error||"")}</div>`;
+    } else if (t === "agent.thinking") {
+      icon = "💭"; iconStyle = "background:#ede9fe;color:var(--purple);";
+      const n = (p.content||"").length;
+      body = `<details class="ev-collapse"><summary><span class="ev-label">thinking</span>&nbsp;<span style="color:var(--muted2);">(${n} chars)</span></summary><pre>${esc(p.content||"")}</pre></details>`;
+    } else if (t === "agent.message") {
+      icon = "◉"; iconStyle = "background:#fff7ed;color:#ea580c;";
+      label = "agent";
+      const content = p.content || "";
+      if (content.length > 300) {
+        body = `<details class="ev-collapse"><summary>message <span style="color:var(--muted2);">(${content.length} chars)</span></summary><div class="msg-body" style="margin-top:6px;">${esc(content)}</div></details>`;
+      } else {
+        body = `<div class="msg-body">${esc(content)}</div>`;
+      }
+    } else if (t === "agent.tool_call") {
+      icon = "⚙"; iconStyle = "background:#cffafe;color:var(--teal);";
+      label = "tool call";
+      body = `<details class="ev-collapse"><summary><code style="background:none;border:none;padding:0;font-size:13px;color:var(--teal);font-weight:600;">${esc(p.name||"")}</code></summary><pre>${esc(shortJson(p.arguments, 3000))}</pre></details>`;
+    } else if (t === "agent.tool_result") {
+      icon = "←"; iconStyle = "background:#f0fdf4;color:var(--green);";
+      label = "tool result";
+      body = `<details class="ev-collapse"><summary><code style="background:none;border:none;padding:0;font-size:13px;">${esc(p.name||"")}</code></summary><pre>${esc(shortJson(p.result, 4000))}</pre></details>`;
+    } else if (t === "agent.final") {
+      icon = "★"; iconStyle = "background:#fef9c3;color:#ca8a04;";
+      label = "plan finalized";
+      body = "";
+    } else if (t === "session.completed") {
+      icon = "✓"; iconStyle = "background:#dcfce7;color:var(--green);";
+      label = "done";
+      body = `<div style="font-weight:500;">Output ready</div>`;
       if (p.output_path) {
-        playerSlot.innerHTML = `<video controls width="360" src="/${p.output_path}"></video><div><a href="/${p.output_path}" download>Download</a></div>`;
+        playerSlot.innerHTML = `<video controls style="max-width:480px;width:100%;border-radius:8px;background:#000;" src="/${esc(p.output_path)}"></video><div style="margin-top:8px;"><a href="/${esc(p.output_path)}" download style="font-size:13px;">↓ Download</a></div>`;
       }
       statusEl.className = "badge completed";
       statusEl.textContent = "completed";
-    }
-    else if (msg.type === "session.failed") {
-      html += `✗ ${p.error}`;
+    } else if (t === "session.failed") {
+      icon = "✗"; iconStyle = "background:#fee2e2;color:var(--red);";
+      label = "failed";
+      body = `<div>${esc(p.error||"")}</div>`;
       statusEl.className = "badge failed";
       statusEl.textContent = "failed";
+    } else {
+      body = `<details class="ev-collapse"><summary class="ev-label">${esc(t)}</summary><pre>${esc(shortJson(p, 1000))}</pre></details>`;
     }
-    else html += `<pre>${shortJson(p, 1000)}</pre>`;
 
-    wrap.innerHTML = html;
+    wrap.innerHTML = `
+      <div class="ev-icon" style="${iconStyle}">${icon}</div>
+      <div class="ev-body">
+        ${label ? `<div class="ev-label" style="margin-bottom:3px;">${label}</div>` : ""}
+        ${body}
+      </div>`;
     eventsEl.appendChild(wrap);
-    window.scrollTo({ top: document.body.scrollHeight });
+    window.scrollTo({ top: document.body.scrollHeight, behavior: "smooth" });
   }
 
   const lastSeq = {{ events|length }};
   const src = new EventSource(`/sessions/${sid}/events?last_event_id=${lastSeq}`);
-  // Listen on all event types — sse-starlette uses `event:` field but we treat them uniformly
   const types = ["step.started","step.completed","step.failed","agent.thinking","agent.message","agent.tool_call","agent.tool_result","agent.final","agent.turn","agent.started","agent.no_tool_call","agent.error","agent.exhausted","session.started","session.completed","session.failed","heartbeat"];
   types.forEach(t => src.addEventListener(t, e => {
     if (t === "heartbeat") return;
-    try { render(JSON.parse(e.data)); } catch (err) {}
+    try { render(JSON.parse(e.data)); } catch(err) {}
   }));
-  src.onerror = () => { /* keep retrying via browser default */ };
+  src.onerror = () => {};
 })();
 </script>
+
 {% endblock %}

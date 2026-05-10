@@ -4,13 +4,25 @@ from typing import Literal
 from pydantic import BaseModel, Field, ValidationError, model_validator
 
 from app.agent.context import SessionCtx
+from app.config import settings
 from app.logging_setup import get_logger
 
 log = get_logger(__name__)
 
-REEL_DURATION = 20.0
 REEL_RATIO = "720:1280"
-EPS = 0.05
+EPS = 0.05  # max gap/overlap between adjacent tracks
+
+
+def _reel_duration() -> float:
+    return settings.reel_duration_sec
+
+
+def _min_reel_duration() -> float:
+    return settings.min_reel_duration_sec
+
+
+def _max_reel_duration() -> float:
+    return settings.max_reel_duration_sec
 
 
 class Moment(BaseModel):
@@ -54,7 +66,7 @@ class AudioOverlay(BaseModel):
 
 
 class ReelPlan(BaseModel):
-    duration_sec: float = Field(default=REEL_DURATION)
+    duration_sec: float = Field(default_factory=_reel_duration)
     ratio: str = Field(default=REEL_RATIO)
     moment: Moment
     commentary_script: str = ""
@@ -64,8 +76,10 @@ class ReelPlan(BaseModel):
 
     @model_validator(mode="after")
     def _check_basics(self):
-        if abs(self.duration_sec - REEL_DURATION) > EPS:
-            raise ValueError(f"duration_sec must be {REEL_DURATION}")
+        if self.duration_sec < _min_reel_duration() - EPS:
+            raise ValueError(f"duration_sec must be at least {_min_reel_duration()}")
+        if self.duration_sec > _max_reel_duration() + EPS:
+            raise ValueError(f"duration_sec must not exceed {_max_reel_duration()}")
         return self
 
 
@@ -83,7 +97,7 @@ def _validate_against_assets(plan: ReelPlan, assets: dict[str, dict]) -> list[st
             if ref not in assets:
                 issues.append(f"track[{i}]: audio refers to unknown asset_id {ref}")
 
-    # tile [0, REEL_DURATION] with no gap or overlap
+    # tile [0, plan.duration_sec] with no gap or overlap
     sorted_tracks = sorted(plan.tracks, key=lambda x: x.reel_start)
     cursor = 0.0
     for i, t in enumerate(sorted_tracks):
@@ -92,8 +106,9 @@ def _validate_against_assets(plan: ReelPlan, assets: dict[str, dict]) -> list[st
                 f"track {i}: gap or overlap at reel_start={t.reel_start} (expected {cursor:.3f})"
             )
         cursor = t.reel_end
-    if abs(cursor - REEL_DURATION) > EPS:
-        issues.append(f"tracks must end at {REEL_DURATION}, ended at {cursor:.3f}")
+    tol = settings.reel_duration_tolerance_sec
+    if abs(cursor - plan.duration_sec) > tol:
+        issues.append(f"tracks must end within {tol}s of {plan.duration_sec}, ended at {cursor:.3f}")
 
     for i, o in enumerate(plan.overlays):
         if o.asset_id not in assets:
@@ -107,8 +122,8 @@ def _validate_against_assets(plan: ReelPlan, assets: dict[str, dict]) -> list[st
         if ao.reel_end <= ao.reel_start:
             issues.append(f"audio_overlay[{i}]: reel_end must be > reel_start")
 
-    if plan.moment.end_sec - plan.moment.start_sec > REEL_DURATION + EPS:
-        issues.append("moment span longer than 20s")
+    if plan.moment.end_sec - plan.moment.start_sec > _max_reel_duration() + EPS:
+        issues.append(f"moment span longer than {_max_reel_duration()}s")
 
     has_character = any(
         a.get("tool") == "generate_character_video" for a in assets.values()

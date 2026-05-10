@@ -30,7 +30,7 @@ def _chat(messages: list[dict]) -> Any:
         model=settings.openai_model_name,
         messages=messages,
         tools=TOOL_SCHEMAS,
-        tool_choice="auto",
+        tool_choice="required",
         temperature=0.5,
         max_tokens=2048,
     )
