@@ -39,7 +39,20 @@ CREATE TABLE IF NOT EXISTS step_results (
     created_at    INTEGER NOT NULL,
     PRIMARY KEY(session_id, step_key)
 );
+
+CREATE TABLE IF NOT EXISTS transcript_cache (
+    youtube_url     TEXT NOT NULL,
+    clip_start_sec  REAL NOT NULL,
+    clip_end_sec    REAL NOT NULL,
+    transcript      TEXT NOT NULL,
+    created_at      INTEGER NOT NULL,
+    PRIMARY KEY(youtube_url, clip_start_sec, clip_end_sec)
+);
 """
+
+# Sentinel used in transcript_cache when clip bounds are unspecified — SQLite
+# treats NULLs as distinct in PKs, which would defeat the lookup.
+_CLIP_UNSET = -1.0
 
 
 _lock = threading.Lock()
@@ -235,6 +248,48 @@ def list_step_results(session_id: str, prefix: str | None = None) -> list[dict]:
         {"step_key": r["step_key"], "status": r["status"], "result": json.loads(r["result"])}
         for r in rows
     ]
+
+
+# ---------- transcript_cache ----------
+
+def _clip_key(v: float | None) -> float:
+    return _CLIP_UNSET if v is None else float(v)
+
+
+def get_cached_transcript(
+    youtube_url: str,
+    clip_start_sec: float | None,
+    clip_end_sec: float | None,
+) -> dict | None:
+    conn = _connect()
+    row = conn.execute(
+        "SELECT transcript FROM transcript_cache "
+        "WHERE youtube_url=? AND clip_start_sec=? AND clip_end_sec=?",
+        (youtube_url, _clip_key(clip_start_sec), _clip_key(clip_end_sec)),
+    ).fetchone()
+    return json.loads(row["transcript"]) if row else None
+
+
+def put_cached_transcript(
+    youtube_url: str,
+    clip_start_sec: float | None,
+    clip_end_sec: float | None,
+    transcript: dict,
+) -> None:
+    conn = _connect()
+    with _lock:
+        conn.execute(
+            "INSERT OR REPLACE INTO transcript_cache "
+            "(youtube_url, clip_start_sec, clip_end_sec, transcript, created_at) "
+            "VALUES (?, ?, ?, ?, ?)",
+            (
+                youtube_url,
+                _clip_key(clip_start_sec),
+                _clip_key(clip_end_sec),
+                json.dumps(transcript, ensure_ascii=False),
+                now(),
+            ),
+        )
 
 
 def init_db() -> None:

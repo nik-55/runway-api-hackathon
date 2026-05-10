@@ -5,6 +5,7 @@ from pathlib import Path
 import requests
 from tenacity import retry, stop_after_attempt, wait_exponential_jitter
 
+from app import db
 from app.config import settings
 from app.logging_setup import get_logger
 from app.pipeline.youtube import to_flac
@@ -45,9 +46,29 @@ def _post_audio(flac_path: str, model_id: str, token: str) -> dict:
     return resp.json()
 
 
-async def transcribe(session_id: str) -> dict:
-    """Transcribe session source audio. Writes transcript.json with text + (optional) word timestamps."""
+async def transcribe(
+    session_id: str,
+    youtube_url: str,
+    clip_start_sec: float | None,
+    clip_end_sec: float | None,
+) -> dict:
+    """Transcribe session source audio. Writes transcript.json with text + (optional) word timestamps.
+
+    Consults a global cache keyed by (youtube_url, clip_start_sec, clip_end_sec) before
+    calling Whisper — Whisper inference dominates pipeline latency, and re-running with
+    the same input is common during iteration.
+    """
     sd = settings.session_dir(session_id)
+    out = sd / "transcript.json"
+
+    cached = db.get_cached_transcript(youtube_url, clip_start_sec, clip_end_sec)
+    if cached is not None:
+        out.write_text(json.dumps(cached, ensure_ascii=False, indent=2))
+        words = cached.get("words") or []
+        text = cached.get("text") or ""
+        log.info("transcript cache hit: %d words, %d chars", len(words), len(text))
+        return {"path": str(out), "word_count": len(words), "char_count": len(text), "cached": True}
+
     audio_in = sd / "source.m4a"
     flac = sd / "source.flac"
     await to_flac(audio_in, flac)
@@ -78,7 +99,7 @@ async def transcribe(session_id: str) -> dict:
         })
 
     transcript = {"text": text.strip(), "words": words, "raw_keys": list(data.keys())}
-    out = sd / "transcript.json"
     out.write_text(json.dumps(transcript, ensure_ascii=False, indent=2))
+    db.put_cached_transcript(youtube_url, clip_start_sec, clip_end_sec, transcript)
     log.info("transcript: %d words, %d chars", len(words), len(text))
-    return {"path": str(out), "word_count": len(words), "char_count": len(text)}
+    return {"path": str(out), "word_count": len(words), "char_count": len(text), "cached": False}

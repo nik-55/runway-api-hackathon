@@ -1,6 +1,6 @@
 # ReelAgent
 
-**Paste a YouTube URL. Get a 20-second reaction reel with a lip-synced AI commentator. No editing. No prompting. One input, one output.**
+**Paste a YouTube URL. Get a short reaction reel with a lip-synced AI commentator. No editing. No prompting. One input, one output.**
 
 A single AI agent reads the transcript, picks the most interesting moment, writes commentary with an emotional delivery, calls Runway APIs for every media asset, and assembles the final vertical video — all autonomously.
 
@@ -8,13 +8,13 @@ A single AI agent reads the transcript, picks the most interesting moment, write
 
 ## Demo
 
-> *YouTube URL + optional direction → 20-second MP4 with a lip-synced character, reaction imagery, sound effects, and cleaned source audio — assembled in one agent loop.*
+> *YouTube URL + optional direction → short vertical MP4 with a lip-synced character, reaction imagery, sound effects, and cleaned source audio — assembled in one agent loop.*
 
 ---
 
 ## What makes it interesting
 
-Most highlight tools clip video. ReelAgent produces a **finished piece**: a 20-second vertical reel with:
+Most highlight tools clip video. ReelAgent produces a **finished piece**: a short vertical reel with:
 
 - A **lip-synced avatar** delivering commentary (not a voiceover, a face speaking)
 - **Emotion markers** baked into the script (`[shocked]`, `[laughing]`, `[deadpan]`) so the character reacts, not just reads
@@ -193,7 +193,7 @@ User: YouTube URL + optional direction
         │      returns TEXT only — raw images never reach orchestrator
         │
         ├──► generate_reaction_image(prompt)
-        │      Runway gen4_image_turbo (text→image, 9:16)
+        │      Runway gen4_image (text→image, 9:16)
         │      → reaction_image_<id>.png
         │
         ├──► generate_animated_reaction(prompt, duration)
@@ -214,7 +214,7 @@ User: YouTube URL + optional direction
         │      → isolated_<id>.mp3
         │
         └──► finalize_reel(plan)
-               Pydantic validates plan: tracks tile [0,20], all asset_ids exist
+               Pydantic validates plan: tracks tile from 0 within configured range, all asset_ids exist
                Writes plan.json → signals loop exit
         │
         ▼
@@ -230,7 +230,7 @@ User: YouTube URL + optional direction
 └──────────────────────────────────────────────────────────┘
         │
         ▼
-  20-second MP4, streamed to browser
+  Final MP4, streamed to browser
 ```
 
 ---
@@ -238,25 +238,25 @@ User: YouTube URL + optional direction
 ### A typical reel structure the agent produces
 
 ```
-0 – 2s    Original clip, cold open
-           Character visible in bottom-right corner, silent
+Cold open    Original clip plays
+              Character visible in bottom-right corner, silent
 
-2 – 9s    Clip continues
-           Original audio: ON (voice-isolated, background removed)
-           Character in corner — reacting visually
+Build         Clip continues
+              Original audio: ON (voice-isolated, background removed)
+              Character in corner — reacting visually
 
-9 – 11s   Hard cut to generated reaction image
-           Sound effect sting hits on the cut
-           Original audio: OFF
+Punch         Hard cut to generated reaction image
+              Sound effect sting hits on the cut
+              Original audio: OFF
 
-11 – 14s  Original clip resumes, key line replays
-           Original audio: ON
+Replay        Original clip resumes, key line replays
+              Original audio: ON
 
-14 – 20s  Character takes full frame — lip-synced monologue
-           [shocked] He actually said this on camera.
-           [pause]
-           [laughing] And just moved on like it's nothing.
-           [serious] But here's why this actually matters...
+Verdict       Character takes full frame — lip-synced monologue
+              [shocked] He actually said this on camera.
+              [pause]
+              [laughing] And just moved on like it's nothing.
+              [serious] But here's why this actually matters...
 ```
 
 This is not fixed — the agent structures each reel differently based on the moment. A slow-burn controversial take gets different cuts than a sudden absurd blurt.
@@ -272,7 +272,7 @@ This is not fixed — the agent structures each reel differently based on the mo
 When the agent issues multiple tool calls in a single assistant message (e.g. `generate_character_video` + `generate_sound_effect` + `isolate_voice`), they execute concurrently via `asyncio.gather`. This cuts Runway generation time significantly.
 
 **`finalize_reel` is itself a tool, not an exit signal.**
-The agent ends the session by calling `finalize_reel(plan)` with a structured JSON plan. Pydantic validates that: tracks tile [0, 20.0] exactly with no gaps or overlaps, every `asset_id` referenced in the plan exists in the registry from prior tool results, and `generate_character_video` was called. If validation fails, the tool returns `{"error": ..., "issues": [...]}` and the loop continues — the model can correct itself.
+The agent ends the session by calling `finalize_reel(plan)` with a structured JSON plan. Pydantic validates that: tracks tile from time 0 with no gaps or overlaps and total length within `[MIN_REEL_DURATION_SEC, MAX_REEL_DURATION_SEC]`, every `asset_id` referenced in the plan exists in the registry from prior tool results, and `generate_character_video` was called. If validation fails, the tool returns `{"error": ..., "issues": [...]}` and the loop continues — the model can correct itself.
 
 **Full resumption without re-billing.**
 Every expensive operation (Runway calls, Whisper, yt-dlp) is wrapped in a checkpoint that writes results to SQLite. On retry, the checkpoint returns the cached result. Pre-agent steps are skipped automatically. Agent turns are replayed from stored assistant messages. Failed sessions show a **Resume** button — continuing from the exact failure point.
@@ -315,7 +315,7 @@ SQLite (`data/reelagent.sqlite`) holds three tables:
 | Orchestrator LLM | Kimi K2.6 (via HF router, OpenAI-compatible) |
 | Speech-to-text | HF Whisper large-v3-turbo (binary upload, not OpenAI-compatible) |
 | Video generation | Runway gen4.5 |
-| Image generation | Runway gen4_image_turbo |
+| Image generation | Runway gen4_image |
 | Sound effects | Runway eleven_text_to_sound_v2 |
 | Voice isolation | Runway eleven_voice_isolation |
 | Lip-synced avatar | Runway gwm1_avatars (avatar_videos) |
@@ -332,7 +332,7 @@ SQLite (`data/reelagent.sqlite`) holds three tables:
 | API | Use |
 |---|---|
 | `POST /v1/avatar_videos` (gwm1_avatars) | Lip-synced character video from script + emotion markers |
-| `POST /v1/text_to_image` (gen4_image_turbo) | Reaction still image |
+| `POST /v1/text_to_image` (gen4_image) | Reaction still image |
 | `POST /v1/text_to_video` (gen4.5) | Animated reaction beat |
 | `POST /v1/sound_effect` (eleven_text_to_sound_v2) | SFX sting |
 | `POST /v1/voice_isolation` (eleven_voice_isolation) | Clean source audio |
@@ -344,5 +344,5 @@ SQLite (`data/reelagent.sqlite`) holds three tables:
 - One reel per session (not batch)
 - YouTube videos ≤ 10 minutes
 - One moment per reel (the agent picks the best one)
-- 20-second maximum reel length
+- Reel length bounded by `MIN_REEL_DURATION_SEC` / `MAX_REEL_DURATION_SEC` (configurable via `.env`)
 - Single configured character persona (set `CHARACTER_AVATAR_PRESET` in `.env`)

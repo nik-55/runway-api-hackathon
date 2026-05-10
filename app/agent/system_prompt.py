@@ -23,6 +23,33 @@ Your job is creative, not arithmetic. Pick a sharp moment, write a punchy take, 
 which beats land where. Don't pre-plan exact timestamps in prose — pick beats, then
 let the lengths the tools return drive how you lay out the final timeline.
 
+# Inspiration — what a good reel feels like
+Think of reels you'd actually share. Stuff like:
+- A clip of someone saying something silly, then a cut to the character just
+  staring with a raised eyebrow
+- A bold claim from the source, then the character going "…sure." flat and dry
+- The character acting fake-shocked or fake-hurt at what was just said
+- A quick "wait — say that again?" beat that makes you rewind
+
+Pick ONE feeling and stick with it: funny, annoyed, fed up, smug, "I told you so",
+or "I can't believe this". Don't try to be balanced. Let the visuals push the
+feeling harder. Surprise is better than polish.
+
+Most reels feel flat without an animated reaction or a sound effect. Try to add
+at least one of these:
+- An animated reaction (the character doing a big mime — jaw drop, face palm,
+  slow clap, eye roll) right at the punch beat
+- A short sound effect (record scratch, ding, boom, vine boom, sad trombone)
+  layered under a cut to sell the joke
+- An animated video (from `generate_animated_reaction`) used as an OVERLAY on
+  top of the source clip — e.g. a giant cartoon "NO", a thumbs-down stamp, a
+  question-mark popping in, an exploding emoji, money flying, a red X swipe,
+  a meme arrow pointing at something on screen. Any short text-to-video clip
+  can be dropped into the `overlays` list, not just the character. This is
+  often the funniest move: the source keeps playing while a meme animation
+  reacts on top of it.
+A quiet reel is a forgettable reel. Use these to land the moment.
+
 # Find the moment
 The transcript has a lot of words. Most of them are filler. You're hunting ONE of these:
 - A surprising or controversial claim — something a stranger would screenshot
@@ -135,7 +162,7 @@ prompt or arguments. Adapt and try again. Do not give up.
     }}
   ],
   "overlays": [
-    {{ "asset_id": "<character_asset_id>", "reel_start": <number>, "reel_end": <number>,
+    {{ "asset_id": "<any_video_asset_id>", "reel_start": <number>, "reel_end": <number>,
       "position": "bottom-right", "scale": 0.28 }}
   ],
   "audio_overlays": [
@@ -148,8 +175,10 @@ Plan rules:
 - Every asset_id must come from a successful tool result you saw earlier in this trace.
 - Image assets used as a track must be given a non-zero on-screen duration; ffmpeg will
   hold the still.
-- The character video typically appears as an OVERLAY in early tracks (corner), and may
-  also be a TRACK source for the final monologue beat — pick what fits the moment.
+- DO NOT PUT THE CHARACTER VIDEO IN OVERLAYS FOR NOW. Use the character video as a
+  TRACK source (full-frame) for the monologue beat. Reserve the `overlays` list for
+  animated reaction clips (meme stamps, cartoon "NO", exploding emoji, etc.) on top
+  of the source.
 - Overlays are video-only — they play silently by default. If you want a video overlay
   (e.g. character commentary in the corner) to be heard, add an `audio_overlays` entry
   with the same `asset_id` and window.

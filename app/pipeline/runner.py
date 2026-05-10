@@ -81,7 +81,8 @@ async def run(session_id: str) -> None:
         ctx.source_audio_path = ea["path"]
 
         tr = await _step(session_id, "transcribe", "transcribe",
-                         transcribe.transcribe, session_id)
+                         transcribe.transcribe, session_id, sess.youtube_url,
+                         sess.clip_start_sec, sess.clip_end_sec)
         ctx.transcript_path = tr["path"]
         transcript = json.loads(Path(ctx.transcript_path).read_text())
 

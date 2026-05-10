@@ -14,6 +14,7 @@ from app.agent.tools import (
     get_frames,
     isolate_voice,
 )
+from app.config import settings
 
 
 ToolFn = Callable[..., Awaitable[dict]]
@@ -46,7 +47,7 @@ TOOL_SCHEMAS: list[dict] = [
         "function": {
             "name": "generate_reaction_image",
             "description": (
-                "Generate a still meme/reaction image via Runway gen4_image_turbo. Returns an asset_id "
+                "Generate a still meme/reaction image via Runway gen4_image. Returns an asset_id "
                 "you can reference in the final reel plan. 9:16 vertical only."
             ),
             "parameters": {
@@ -133,8 +134,10 @@ TOOL_SCHEMAS: list[dict] = [
         "function": {
             "name": "finalize_reel",
             "description": (
-                "Submit the final assembly plan and end the session. The plan must tile [0, 20] seconds "
-                "exactly, reference only existing asset_ids, and follow the schema in the system prompt."
+                f"Submit the final assembly plan and end the session. The plan must tile from 0 with no "
+                f"gaps; the total length must land within [{settings.min_reel_duration_sec:g}, "
+                f"{settings.max_reel_duration_sec:g}] seconds. Reference only existing asset_ids, and "
+                f"follow the schema in the system prompt."
             ),
             "parameters": {
                 "type": "object",

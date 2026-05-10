@@ -52,7 +52,7 @@ Each tool is `async def call(ctx: SessionCtx, **kwargs) -> dict`. All tool schem
 | Tool | Backend | What it returns |
 |---|---|---|
 | `get_frames` | ffmpeg + Kimi vision sub-call | `{"answer": str}` — text only |
-| `generate_reaction_image` | Runway `gen4_image_turbo` | `{"asset_id": str}` |
+| `generate_reaction_image` | Runway `gen4_image` | `{"asset_id": str}` |
 | `generate_animated_reaction` | Runway `gen4.5` | `{"asset_id": str, "duration_sec": int}` |
 | `generate_sound_effect` | Runway `eleven_text_to_sound_v2` | `{"asset_id": str, "duration_sec": int}` |
 | `generate_character_video` | Runway `gwm1_avatars` (avatar_videos) | `{"asset_id": str, "duration_sec": float}` |
