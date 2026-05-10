@@ -1,0 +1,16 @@
+fastapi>=0.115
+uvicorn[standard]>=0.32
+jinja2>=3.1
+pydantic>=2.9
+pydantic-settings>=2.6
+python-multipart>=0.0.12
+sse-starlette>=2.1
+
+openai>=1.55
+runwayml>=3
+langfuse>=2.50
+
+yt-dlp>=2024.12.0
+requests>=2.32
+httpx>=0.27
+tenacity>=9.0

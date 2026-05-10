@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>{% block title %}ReelAgent{% endblock %}</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <style>
+    :root { color-scheme: dark; }
+    * { box-sizing: border-box; }
+    body {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      background: #0b0d10; color: #d8dee4;
+      max-width: 980px; margin: 0 auto; padding: 24px 16px;
+      line-height: 1.5;
+    }
+    h1, h2, h3 { color: #fff; font-weight: 600; }
+    a { color: #6ec1ff; text-decoration: none; }
+    a:hover { text-decoration: underline; }
+    input, textarea, button {
+      font-family: inherit; font-size: 14px;
+      background: #14181d; border: 1px solid #2a323b; color: #d8dee4;
+      padding: 8px 10px; border-radius: 6px;
+    }
+    button { cursor: pointer; background: #1f6feb; border-color: #1f6feb; color: white; }
+    button:hover { background: #2a7df0; }
+    button.secondary { background: #2a323b; border-color: #2a323b; }
+    .row { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
+    .badge {
+      display: inline-block; padding: 2px 8px; border-radius: 999px;
+      font-size: 12px; background: #14181d; border: 1px solid #2a323b;
+    }
+    .badge.queued { color: #f0c674; }
+    .badge.running { color: #6ec1ff; }
+    .badge.completed { color: #8fd175; }
+    .badge.failed { color: #f06b6b; }
+    .panel { background: #11151a; border: 1px solid #1d242c; border-radius: 8px; padding: 16px; margin: 16px 0; }
+    .event { padding: 8px 10px; border-bottom: 1px solid #1d242c; }
+    .event:last-child { border-bottom: none; }
+    .event .ts { color: #6c7681; font-size: 12px; }
+    .event .type { color: #6ec1ff; font-weight: 600; }
+    pre { background: #0e1216; border: 1px solid #1d242c; border-radius: 6px; padding: 12px; overflow-x: auto; font-size: 12px; }
+    details summary { cursor: pointer; color: #aab; }
+    details[open] summary { color: #fff; }
+    table { width: 100%; border-collapse: collapse; }
+    th, td { text-align: left; padding: 8px 10px; border-bottom: 1px solid #1d242c; }
+    th { color: #aab; font-weight: 500; font-size: 12px; }
+    .dim { color: #6c7681; }
+  </style>
+</head>
+<body>
+  <header style="margin-bottom: 24px;">
+    <h1 style="margin: 0;"><a href="/">ReelAgent</a></h1>
+    <div class="dim" style="font-size: 13px;">YouTube → 20-second reaction reel.</div>
+  </header>
+  {% block content %}{% endblock %}
+</body>
+</html>

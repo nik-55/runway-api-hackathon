@@ -1,0 +1,115 @@
+{% extends "base.html" %}
+{% block title %}Session {{ session.id[:8] }} — ReelAgent{% endblock %}
+{% block content %}
+<section class="panel">
+  <div class="row">
+    <h2 style="margin: 0;">Session {{ session.id[:8] }}</h2>
+    <span id="status-badge" class="badge {{ session.status }}">{{ session.status }}</span>
+  </div>
+  <div class="dim" style="margin-top: 6px; word-break: break-all;">
+    <a href="{{ session.youtube_url }}">{{ session.youtube_url }}</a>
+  </div>
+  {% if session.direction %}<div style="margin-top: 4px;">direction: <code>{{ session.direction }}</code></div>{% endif %}
+  {% if session.failure %}<div style="margin-top: 8px; color: #f06b6b;">failure: {{ session.failure }}</div>{% endif %}
+
+  <div id="player-slot" style="margin-top: 12px;">
+    {% if session.status == "completed" and session.output_path %}
+    <video controls width="360" src="/{{ session.output_path }}"></video>
+    <div><a href="/{{ session.output_path }}" download>Download</a></div>
+    {% endif %}
+  </div>
+
+  {% if session.status in ("failed",) %}
+  <form method="post" action="/sessions/{{ session.id }}/resume" style="margin-top: 12px;">
+    <button type="submit" class="secondary">Resume</button>
+  </form>
+  {% endif %}
+</section>
+
+<section class="panel">
+  <h3 style="margin-top: 0;">Activity</h3>
+  <div id="events">
+    {% for ev in events %}
+    <div class="event">
+      <div class="ts">seq {{ ev.seq }} <span class="type">{{ ev.type }}</span></div>
+      {% if ev.type == "step.started" %}→ {{ ev.payload.name }}
+      {% elif ev.type == "step.completed" %}✓ {{ ev.payload.name }}
+      {% elif ev.type == "step.failed" %}✗ {{ ev.payload.name }} — {{ ev.payload.error }}
+      {% elif ev.type == "agent.thinking" %}<details><summary>thinking</summary><pre>{{ ev.payload.content }}</pre></details>
+      {% elif ev.type == "agent.message" %}<blockquote style="margin:4px 0 0;padding-left:10px;border-left:3px solid #2a323b;white-space:pre-wrap;">{{ ev.payload.content }}</blockquote>
+      {% elif ev.type == "agent.tool_call" %}→ <code>{{ ev.payload.name }}({{ ev.payload.arguments|tojson }})</code>
+      {% elif ev.type == "agent.tool_result" %}← <code>{{ ev.payload.name }}</code>
+      {% elif ev.type == "session.completed" %}★ output ready
+      {% elif ev.type == "session.failed" %}✗ {{ ev.payload.error }}
+      {% else %}<pre>{{ ev.payload|tojson }}</pre>
+      {% endif %}
+    </div>
+    {% endfor %}
+  </div>
+</section>
+
+<script>
+(function() {
+  const sid = {{ session.id|tojson }};
+  const eventsEl = document.getElementById("events");
+  const statusEl = document.getElementById("status-badge");
+  const playerSlot = document.getElementById("player-slot");
+
+  function fmtTime(unix) {
+    return new Date(unix * 1000).toLocaleTimeString();
+  }
+
+  function shortJson(v, max) {
+    try {
+      const s = JSON.stringify(v);
+      return s.length > max ? s.slice(0, max) + "…" : s;
+    } catch (e) { return String(v); }
+  }
+
+  function render(msg) {
+    const wrap = document.createElement("div");
+    wrap.className = "event";
+    const ts = fmtTime(msg.created_at || (Date.now() / 1000));
+    let html = `<div class="ts">${ts} <span class="type">${msg.type}</span></div>`;
+    const p = msg.payload || {};
+
+    if (msg.type === "step.started") html += `→ ${p.name}`;
+    else if (msg.type === "step.completed") html += `✓ ${p.name} <details><summary>result</summary><pre>${shortJson(p.result, 4000)}</pre></details>`;
+    else if (msg.type === "step.failed") html += `✗ ${p.name} — ${p.error}`;
+    else if (msg.type === "agent.thinking") html += `<details><summary>thinking (${(p.content||"").length} chars)</summary><pre>${(p.content||"").replace(/</g,"&lt;")}</pre></details>`;
+    else if (msg.type === "agent.message") html += `<blockquote style="margin: 4px 0 0; padding-left: 10px; border-left: 3px solid #2a323b; white-space: pre-wrap;">${(p.content||"").replace(/</g,"&lt;")}</blockquote>`;
+    else if (msg.type === "agent.tool_call") html += `→ <code>${p.name}(${shortJson(p.arguments, 240)})</code>`;
+    else if (msg.type === "agent.tool_result") html += `← <code>${p.name}</code> <details><summary>result</summary><pre>${shortJson(p.result, 4000)}</pre></details>`;
+    else if (msg.type === "agent.final") html += `★ plan finalized`;
+    else if (msg.type === "session.completed") {
+      html += `★ output ready`;
+      if (p.output_path) {
+        playerSlot.innerHTML = `<video controls width="360" src="/${p.output_path}"></video><div><a href="/${p.output_path}" download>Download</a></div>`;
+      }
+      statusEl.className = "badge completed";
+      statusEl.textContent = "completed";
+    }
+    else if (msg.type === "session.failed") {
+      html += `✗ ${p.error}`;
+      statusEl.className = "badge failed";
+      statusEl.textContent = "failed";
+    }
+    else html += `<pre>${shortJson(p, 1000)}</pre>`;
+
+    wrap.innerHTML = html;
+    eventsEl.appendChild(wrap);
+    window.scrollTo({ top: document.body.scrollHeight });
+  }
+
+  const lastSeq = {{ events|length }};
+  const src = new EventSource(`/sessions/${sid}/events?last_event_id=${lastSeq}`);
+  // Listen on all event types — sse-starlette uses `event:` field but we treat them uniformly
+  const types = ["step.started","step.completed","step.failed","agent.thinking","agent.message","agent.tool_call","agent.tool_result","agent.final","agent.turn","agent.started","agent.no_tool_call","agent.error","agent.exhausted","session.started","session.completed","session.failed","heartbeat"];
+  types.forEach(t => src.addEventListener(t, e => {
+    if (t === "heartbeat") return;
+    try { render(JSON.parse(e.data)); } catch (err) {}
+  }));
+  src.onerror = () => { /* keep retrying via browser default */ };
+})();
+</script>
+{% endblock %}
