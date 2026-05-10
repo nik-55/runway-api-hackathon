@@ -6,7 +6,7 @@ from tenacity import retry, retry_if_exception_type, stop_after_attempt, wait_ex
 from openai import APIConnectionError, APITimeoutError, RateLimitError, InternalServerError
 
 from app.agent.context import SessionCtx
-from app.agent.system_prompt import SYSTEM_PROMPT
+from app.agent.system_prompt import build_system_prompt
 from app.agent.tools import TOOL_REGISTRY, TOOL_SCHEMAS
 from app.config import settings
 from app.llm.kimi_client import get_client
@@ -32,7 +32,8 @@ def _chat(messages: list[dict]) -> Any:
         tools=TOOL_SCHEMAS,
         tool_choice="required",
         temperature=0.5,
-        max_tokens=2048,
+        max_completion_tokens=32768,
+        reasoning_effort="high",
     )
 
 
@@ -83,7 +84,7 @@ async def run_agent_loop(ctx: SessionCtx, transcript: dict) -> dict:
     Returns dict with at least {"ok": bool, "plan_path": str | None}.
     """
     messages: list[dict] = [
-        {"role": "system", "content": SYSTEM_PROMPT},
+        {"role": "system", "content": build_system_prompt()},
         {"role": "user", "content": _initial_user_message(transcript, ctx.direction, ctx.source_duration_sec)},
     ]
     publish(ctx.session_id, "agent.started", {"max_turns": settings.max_agent_turns})

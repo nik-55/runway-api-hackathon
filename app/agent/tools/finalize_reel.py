@@ -1,7 +1,7 @@
 import json
 from typing import Literal
 
-from pydantic import BaseModel, Field, ValidationError, model_validator
+from pydantic import BaseModel, Field, ValidationError
 
 from app.agent.context import SessionCtx
 from app.config import settings
@@ -11,10 +11,6 @@ log = get_logger(__name__)
 
 REEL_RATIO = "720:1280"
 EPS = 0.05  # max gap/overlap between adjacent tracks
-
-
-def _reel_duration() -> float:
-    return settings.reel_duration_sec
 
 
 def _min_reel_duration() -> float:
@@ -66,7 +62,6 @@ class AudioOverlay(BaseModel):
 
 
 class ReelPlan(BaseModel):
-    duration_sec: float = Field(default_factory=_reel_duration)
     ratio: str = Field(default=REEL_RATIO)
     moment: Moment
     commentary_script: str = ""
@@ -74,16 +69,8 @@ class ReelPlan(BaseModel):
     overlays: list[Overlay] = Field(default_factory=list)
     audio_overlays: list[AudioOverlay] = Field(default_factory=list)
 
-    @model_validator(mode="after")
-    def _check_basics(self):
-        if self.duration_sec < _min_reel_duration() - EPS:
-            raise ValueError(f"duration_sec must be at least {_min_reel_duration()}")
-        if self.duration_sec > _max_reel_duration() + EPS:
-            raise ValueError(f"duration_sec must not exceed {_max_reel_duration()}")
-        return self
 
-
-def _validate_against_assets(plan: ReelPlan, assets: dict[str, dict]) -> list[str]:
+def _validate_against_assets(plan: ReelPlan, assets: dict[str, dict]) -> tuple[list[str], float]:
     issues: list[str] = []
 
     for i, t in enumerate(plan.tracks):
@@ -97,7 +84,7 @@ def _validate_against_assets(plan: ReelPlan, assets: dict[str, dict]) -> list[st
             if ref not in assets:
                 issues.append(f"track[{i}]: audio refers to unknown asset_id {ref}")
 
-    # tile [0, plan.duration_sec] with no gap or overlap
+    # tracks must tile [0, total] with no gap or overlap; total is derived from the last reel_end
     sorted_tracks = sorted(plan.tracks, key=lambda x: x.reel_start)
     cursor = 0.0
     for i, t in enumerate(sorted_tracks):
@@ -106,9 +93,12 @@ def _validate_against_assets(plan: ReelPlan, assets: dict[str, dict]) -> list[st
                 f"track {i}: gap or overlap at reel_start={t.reel_start} (expected {cursor:.3f})"
             )
         cursor = t.reel_end
-    tol = settings.reel_duration_tolerance_sec
-    if abs(cursor - plan.duration_sec) > tol:
-        issues.append(f"tracks must end within {tol}s of {plan.duration_sec}, ended at {cursor:.3f}")
+    total = cursor
+
+    if total < _min_reel_duration() - EPS:
+        issues.append(f"reel total {total:.3f}s is below minimum {_min_reel_duration()}s")
+    if total > _max_reel_duration() + EPS:
+        issues.append(f"reel total {total:.3f}s exceeds maximum {_max_reel_duration()}s")
 
     for i, o in enumerate(plan.overlays):
         if o.asset_id not in assets:
@@ -122,6 +112,23 @@ def _validate_against_assets(plan: ReelPlan, assets: dict[str, dict]) -> list[st
         if ao.reel_end <= ao.reel_start:
             issues.append(f"audio_overlay[{i}]: reel_end must be > reel_start")
 
+    # video overlays are silent unless paired with an audio_overlays entry
+    for i, o in enumerate(plan.overlays):
+        asset = assets.get(o.asset_id)
+        if not asset or asset.get("kind") != "video":
+            continue
+        paired = any(
+            ao.asset_id == o.asset_id
+            and ao.reel_start <= o.reel_start + EPS
+            and ao.reel_end >= o.reel_end - EPS
+            for ao in plan.audio_overlays
+        )
+        if not paired:
+            log.info(
+                "overlay[%d] (asset %s) has no matching audio_overlays entry — will play silently if unintended",
+                i, o.asset_id,
+            )
+
     if plan.moment.end_sec - plan.moment.start_sec > _max_reel_duration() + EPS:
         issues.append(f"moment span longer than {_max_reel_duration()}s")
 
@@ -133,7 +140,7 @@ def _validate_against_assets(plan: ReelPlan, assets: dict[str, dict]) -> list[st
             "you have not called generate_character_video yet — the commentary track is mandatory"
         )
 
-    return issues
+    return issues, total
 
 
 async def call(ctx: SessionCtx, *, plan: dict) -> dict:
@@ -142,11 +149,13 @@ async def call(ctx: SessionCtx, *, plan: dict) -> dict:
     except ValidationError as e:
         return {"error": "schema validation failed", "issues": [str(err) for err in e.errors()]}
 
-    issues = _validate_against_assets(parsed, ctx.assets)
+    issues, total = _validate_against_assets(parsed, ctx.assets)
     if issues:
         return {"error": "plan invalid", "issues": issues}
 
     out = ctx.session_dir / "plan.json"
-    out.write_text(parsed.model_dump_json(indent=2))
-    log.info("plan finalized for session %s", ctx.session_id)
+    payload = parsed.model_dump()
+    payload["duration_sec"] = round(total, 3)
+    out.write_text(json.dumps(payload, indent=2))
+    log.info("plan finalized for session %s (duration=%.3fs)", ctx.session_id, total)
     return {"ok": True, "plan_path": str(out)}

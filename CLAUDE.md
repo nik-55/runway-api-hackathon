@@ -90,10 +90,13 @@ Key env vars:
 - `OPENAI_API_BASE_URL` — default `https://router.huggingface.co/v1`
 - `OPENAI_MODEL_NAME` — default `moonshotai/Kimi-K2.6:fireworks-ai`
 - `CHARACTER_AVATAR_PRESET` — Runway preset id (default `influencer`)
-- `REEL_DURATION_SEC` — default target reel length (default `30.0`)
 - `MIN_REEL_DURATION_SEC` — minimum allowed reel length (default `10.0`)
 - `MAX_REEL_DURATION_SEC` — maximum allowed reel length (default `60.0`)
-- `REEL_DURATION_TOLERANCE_SEC` — how far tracks may deviate from `duration_sec` before the plan is rejected (default `15.0`). Set generously so the model spends tokens on creative decisions, not fixing frame-precise timing.
+
+The reel's total duration is **derived** from the plan, not declared by the model: it equals
+the final track's `reel_end`. `finalize_reel` rejects plans whose derived total falls outside
+`[MIN_REEL_DURATION_SEC, MAX_REEL_DURATION_SEC]`, and writes the derived value into `plan.json`
+under `duration_sec` for `assemble.py` to consume.
 
 ### Frontend
 

@@ -12,7 +12,6 @@ from pathlib import Path
 from typing import Any
 
 from app.agent.context import SessionCtx
-from app.config import settings
 from app.logging_setup import get_logger
 
 log = get_logger(__name__)
@@ -313,7 +312,7 @@ async def assemble(ctx: SessionCtx) -> dict:
         "-c:v", "libx264", "-preset", "veryfast", "-crf", "20", "-pix_fmt", "yuv420p",
         "-c:a", "aac", "-b:a", "192k",
         "-r", str(FPS),
-        "-t", f"{float(plan.get('duration_sec', settings.reel_duration_sec)):.3f}",
+        "-t", f"{float(plan['duration_sec']):.3f}",
         "-movflags", "+faststart",
         str(out_path),
     ])

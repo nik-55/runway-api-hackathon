@@ -54,10 +54,8 @@ class Settings(BaseSettings):
 
     max_agent_turns: int = 25
     max_video_duration_sec: int = 600
-    reel_duration_sec: float = 20.0
-    min_reel_duration_sec: float = 6.0
-    max_reel_duration_sec: float = 30.0
-    reel_duration_tolerance_sec: float = 10.0
+    min_reel_duration_sec: float = 10.0
+    max_reel_duration_sec: float = 60.0
 
     media_root: Path = REPO_ROOT / "media"
     logs_root: Path = REPO_ROOT / "logs"
