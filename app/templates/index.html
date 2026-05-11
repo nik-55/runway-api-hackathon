@@ -3,7 +3,7 @@
 
 <div class="card">
   <h2 style="margin-bottom: 16px; font-size: 17px;">New reel</h2>
-  <form method="post" action="/sessions" enctype="multipart/form-data">
+  <form method="post" action="/sessions" enctype="multipart/form-data" id="new-reel-form">
     <div style="display: flex; flex-direction: column; gap: 10px;">
       <input name="youtube_url" placeholder="https://www.youtube.com/watch?v=…" style="width: 100%;">
 
@@ -17,6 +17,7 @@
 
       <p style="font-size: 12px; color: var(--muted); margin: -4px 0 0 2px;">
         Max {{ max_video_minutes }} min — for longer videos, use the Clip fields below to pick a segment.
+        Video must have English speech — transcription requires audible English dialogue.
       </p>
 
       <details style="background: #fffbeb; border: 1.5px solid #fde68a; border-radius: var(--radius); padding: 10px 12px;" open>
@@ -56,11 +57,26 @@
           <span style="color: var(--muted); font-size: 13px;">→</span>
           <input name="clip_end" placeholder="end" style="width: 80px; font-size: 13px;" title="End time, e.g. 3:45">
         </div>
-        <button type="submit">Generate reel</button>
+        <button type="submit" id="submit-btn">Generate reel</button>
       </div>
     </div>
   </form>
 </div>
+
+<script>
+  (function () {
+    const form = document.getElementById("new-reel-form");
+    const btn = document.getElementById("submit-btn");
+    const fileInput = form.querySelector('input[name="video_file"]');
+    form.addEventListener("submit", function () {
+      const hasFile = fileInput && fileInput.files && fileInput.files.length > 0;
+      btn.disabled = true;
+      btn.textContent = hasFile ? "Uploading…" : "Submitting…";
+      btn.style.opacity = "0.65";
+      btn.style.cursor = "wait";
+    });
+  })();
+</script>
 
 <div class="card">
   <h2 style="margin-bottom: 16px; font-size: 17px;">Sessions</h2>

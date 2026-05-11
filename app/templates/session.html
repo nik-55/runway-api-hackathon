@@ -102,7 +102,7 @@
   </div>
   <div style="font-size: 13px; color: var(--muted); word-break: break-all;">
     {% if session.youtube_url.startswith("upload:") %}
-      📁 {{ session.youtube_url[7:] }}
+      📁 <a href="/media/sessions/{{ session.id }}/source.mp4" download="{{ session.youtube_url[7:] }}">{{ session.youtube_url[7:] }}</a>
     {% else %}
       <a href="{{ session.youtube_url }}">{{ session.youtube_url }}</a>
     {% endif %}
