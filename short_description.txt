@@ -1,0 +1,20 @@
+ReelAgent takes a YouTube URL and produces a finished vertical reel: a lip-synced avatar delivering commentary, cut with reaction stills (meme text cards, reaction faces), short animated clips as cutaways or overlays, and sound effects placed at precise timestamps. It is a multi-asset edit, not a clip with a voiceover. Paste a URL, optionally add a direction ("roast it", "make it serious").
+
+How it works:
+The pipeline downloads the source video, extracts the audio, and produces a word-level transcript. That transcript is handed to a Kimi K2.6 agent.
+
+The agent reads the transcript with the user's direction and picks a moment to react to. The style is content-dependent — for comedy it might write a deadpan take with a meme still and a vine boom; for a tense moment, a reaction face with a reverb sting; for an opinion piece, sarcastic commentary with an animated overlay. The code prescribes no style — these decisions are the model's each turn. If the transcript is ambiguous, the agent can inspect frames directly. It then writes commentary, calls the relevant Runway tools, and submits an assembly plan. The loop exits on a valid plan; the pipeline assembles the final 9:16 video.
+
+How the agent uses each Runway API in the loop:
+
+gwm1_avatars (avatar_videos) — Called once per session, once the agent has its take. The commentary script is scored line by line with inline emotion markers ([shocked], [laughing], [sarcastic], [deadpan]) so the avatar reacts with the right tone, not a flat read.
+
+gen4_image — Called when a beat in the commentary needs a static visual — a punchline card, reaction face, or meme graphic. The prompt is written for that beat, not a generic reaction.
+
+gen4.5 (text-to-video) — Called when the agent wants motion instead of a still — as a cutaway between beats, or as an overlay on the source clip (animated "NO", exploding emoji).
+
+eleven_text_to_sound_v2 — Called when a moment needs a sting to land — a record scratch on a cringe line, a vine boom on the reveal, a reverb hit on a pause. The agent picks the timestamp and describes the sound.
+
+eleven_voice_isolation — Called when part of the original clip should remain audible. The agent specifies the audio window to keep; this cleans it so noise and music don't bleed through.
+
+Within a turn the agent often issues several calls in parallel, sees the results, then issues follow-ups — e.g. picking a sound effect duration from the animated clip just returned.
