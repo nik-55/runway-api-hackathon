@@ -55,9 +55,18 @@ def _track_video_filter(track: dict, in_idx: int, idx: int) -> tuple[str, str]:
             f"[{label_out}]"
         )
     else:
-        # asset: image is read as a video (with -loop 1) or video clip
+        # asset: image is read as a video (with -loop 1) or video clip.
+        # Optional start_sec/end_sec carves a sub-window out of the asset so a
+        # single long asset can be reused across multiple tracks.
+        s = src.get("start_sec")
+        e = src.get("end_sec")
+        if s is not None and e is not None:
+            trim_prefix = f"trim=start={float(s)}:end={float(e)},setpts=PTS-STARTPTS,"
+        else:
+            trim_prefix = ""
         chain = (
             f"[{label_in}]"
+            f"{trim_prefix}"
             f"scale={W}:{H}:force_original_aspect_ratio=decrease,"
             f"pad={W}:{H}:(ow-iw)/2:(oh-ih)/2:color=black,"
             f"setsar=1,fps={FPS},"
@@ -242,8 +251,14 @@ async def assemble(ctx: SessionCtx) -> dict:
             asset_id = t["source"]["asset_id"]
             asset = ctx.assets.get(asset_id) or {}
             if asset.get("kind") == "video":
+                s = t["source"].get("start_sec")
+                e = t["source"].get("end_sec")
+                if s is not None and e is not None:
+                    atrim_prefix = f"atrim=start={float(s)}:end={float(e)},"
+                else:
+                    atrim_prefix = ""
                 filters.append(
-                    f"[{in_idx}:a]asetpts=PTS-STARTPTS,apad,"
+                    f"[{in_idx}:a]{atrim_prefix}asetpts=PTS-STARTPTS,apad,"
                     f"atrim=duration={reel_dur},asetpts=PTS-STARTPTS[{a_label}]"
                 )
             else:

@@ -167,7 +167,8 @@ prompt or arguments. Adapt and try again. Do not give up.
     }},
     {{
       "kind": "video",
-      "source": {{"type": "asset", "asset_id": "<image_or_video_asset>"}},
+      "source": {{"type": "asset", "asset_id": "<image_or_video_asset>",
+                  "start_sec": <optional number>, "end_sec": <optional number>}},
       "reel_start": <number>, "reel_end": <number>,
       "audio": "off" | "asset"
     }}
@@ -193,4 +194,10 @@ Plan rules:
 - Overlays are video-only — they play silently by default. If you want a video overlay
   (e.g. character commentary in the corner) to be heard, add an `audio_overlays` entry
   with the same `asset_id` and window.
+- An asset track source accepts optional `start_sec` / `end_sec` to play a SUB-WINDOW
+  of a video asset (e.g. seconds 10-21 of a 21s character video). Both must be set
+  together, must fit inside the asset's duration, and are only valid for video assets.
+  Use this to split ONE character video across two beats — referencing the same
+  `asset_id` twice WITHOUT `start_sec`/`end_sec` would replay the asset from 0 both
+  times instead of continuing where the previous beat left off.
 """

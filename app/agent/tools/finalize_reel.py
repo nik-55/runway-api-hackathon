@@ -36,6 +36,12 @@ class TrackSourceOriginal(BaseModel):
 class TrackSourceAsset(BaseModel):
     type: Literal["asset"]
     asset_id: str
+    # Optional sub-window into the asset. When both are omitted, the asset
+    # plays from its start (legacy behavior). Setting these lets you split a
+    # long asset (e.g. a 21s character video) across two tracks without
+    # re-generating it. Only valid for video assets with a known duration.
+    start_sec: float | None = None
+    end_sec: float | None = None
 
 
 class Track(BaseModel):
@@ -79,6 +85,28 @@ def _validate_against_assets(plan: ReelPlan, assets: dict[str, dict]) -> tuple[l
         if isinstance(t.source, TrackSourceAsset):
             if t.source.asset_id not in assets:
                 issues.append(f"track[{i}]: unknown asset_id {t.source.asset_id}")
+            else:
+                s, e = t.source.start_sec, t.source.end_sec
+                if (s is None) != (e is None):
+                    issues.append(
+                        f"track[{i}]: asset source start_sec and end_sec must be set together"
+                    )
+                elif s is not None and e is not None:
+                    asset = assets[t.source.asset_id]
+                    if asset.get("kind") != "video":
+                        issues.append(
+                            f"track[{i}]: start_sec/end_sec on asset source only allowed for video assets"
+                        )
+                    elif e <= s:
+                        issues.append(f"track[{i}]: asset end_sec must be > start_sec")
+                    elif s < -EPS:
+                        issues.append(f"track[{i}]: asset start_sec must be >= 0")
+                    else:
+                        dur = asset.get("duration_sec")
+                        if dur is not None and e > float(dur) + EPS:
+                            issues.append(
+                                f"track[{i}]: asset end_sec {e:.3f} exceeds asset duration {float(dur):.3f}"
+                            )
         if t.audio.startswith("isolated:"):
             ref = t.audio.split(":", 1)[1]
             if ref not in assets:
