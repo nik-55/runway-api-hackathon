@@ -80,6 +80,27 @@
   })();
 </script>
 
+{% if showcase_reels %}
+<div class="card">
+  <h2 style="margin-bottom: 16px; font-size: 17px;">Showcase</h2>
+  <div style="display: flex; gap: 12px; overflow-x: auto; padding-bottom: 4px;">
+    {% for r in showcase_reels %}
+    <div style="flex: 0 0 auto; width: 160px;">
+      <video
+        src="{{ r.video_url }}"
+        {% if r.poster_url %}poster="{{ r.poster_url }}"{% endif %}
+        preload="none"
+        controls
+        playsinline
+        style="width: 160px; height: 284px; object-fit: cover; border-radius: var(--radius); background: #000; display: block; cursor: pointer;"
+      ></video>
+      <div style="font-size: 12px; color: var(--muted); margin-top: 6px; line-height: 1.35; overflow: hidden; text-overflow: ellipsis; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;" title="{{ r.title }}">{{ r.title }}</div>
+    </div>
+    {% endfor %}
+  </div>
+</div>
+{% endif %}
+
 <div class="card">
   <h2 style="margin-bottom: 16px; font-size: 17px;">Sessions</h2>
   {% if sessions %}

@@ -41,3 +41,15 @@ Clip the middle stretch — roughly 3–8 minutes — where Neumann pivots from 
 > "Design the reel like this: open on Neumann saying 'we rent office space' → cut to an animated 'okay, normal so far' meme as a video overlay with a light ding sound effect → back to him pivoting into 'buildings need consciousness and energy' → drop a record-scratch sound effect as audio overlay → character commentator appears to roast the leap from 'we rent desks' to 'we elevate humanity' → cut back to the interviewer's confused face and the silent audience → layer an animated 'crickets' / tumbleweed meme on top with a literal crickets sound effect → close with the character commentator delivering the final verdict on the $47B valuation. Use at least 2 animated memes, 2–3 sound effects, and 2 character commentary moments — alternate them as video overlays and audio overlays spread across the reel, never stacked at the end."
 
 ---
+
+## 4. Pentagon UFO Files Release — Vantage on Firstpost
+
+**Title:** When the Pentagon Finally Admits Aliens But Makes It Sound Like a TPS Report
+
+**What to clip:**
+Clip a 30–60s stretch where the news anchor sets up the "Pentagon releases UFO files after Trump's order" headline with maximum gravitas, then cuts to the actual bureaucratic-looking documents, redacted pages, or officials reading dry prepared statements. The gap between "humanity's biggest reveal" framing and the boring PDF-dump reality is the money moment.
+
+**Directional comment for agent:**
+> "Build the reel like this: open on the news anchor delivering the 'Pentagon releases UFO files' headline with maximum gravitas → cut to an animated 'wait, ALIENS?!' meme as a video overlay with a dramatic record-scratch sound effect → back to footage of the actual bureaucratic-looking documents or officials reading prepared statements → drop a sad-trombone sound effect as audio overlay → character commentator pops in with the first reaction ('60 years of cover-ups for THIS PowerPoint?') → cut back to more footage of the dry official briefing or redacted pages → layer an animated 'this is fine' / shrug meme on top with an awkward-silence sound effect → close with the SAME character commentator delivering the final verdict on humanity's biggest reveal being a PDF dump. Use at least 2 animated memes, 2–3 sound effects, and 2 character commentary moments — the two character moments must come from ONE character video split across the timeline (use start_sec/end_sec on the asset source to play the first half in the middle and the second half at the end). Interleave video overlays and audio overlays across the reel, never bunched at the end."
+
+---

@@ -9,6 +9,24 @@ router = APIRouter()
 templates = Jinja2Templates(directory=str(REPO_ROOT / "app" / "templates"))
 
 
+def _list_showcase_reels(limit: int = 5):
+    showcase_dir = settings.media_root / "example-generations"
+    if not showcase_dir.is_dir():
+        return []
+    reels = sorted(showcase_dir.glob("*/reel.mp4"), key=lambda p: p.stat().st_mtime, reverse=True)[:limit]
+    items = []
+    for reel in reels:
+        slug = reel.parent.name
+        poster = reel.with_name("poster.jpg")
+        items.append({
+            "slug": slug,
+            "title": slug.replace("-", " ").replace("_", " ").strip().capitalize(),
+            "video_url": f"/media/example-generations/{slug}/reel.mp4",
+            "poster_url": f"/media/example-generations/{slug}/poster.jpg" if poster.exists() else None,
+        })
+    return items
+
+
 @router.get("/", response_class=HTMLResponse)
 async def index(request: Request):
     sessions = db.list_sessions(limit=50)
@@ -18,6 +36,7 @@ async def index(request: Request):
         {
             "sessions": sessions,
             "max_video_minutes": settings.max_video_duration_sec // 60,
+            "showcase_reels": _list_showcase_reels(),
         },
     )
 
