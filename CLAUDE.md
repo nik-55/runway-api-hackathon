@@ -26,14 +26,15 @@ No test suite or linter currently configured.
 
 ### Request lifecycle
 
-`POST /sessions` → inserts DB row → `asyncio.create_task(runner.run(session_id))` → redirects to `/sessions/{id}`. The browser subscribes to `GET /sessions/{id}/events` (SSE) for live progress. Everything happens in one process using `asyncio`.
+`POST /sessions` (multipart) accepts either a `youtube_url` field **or** a `video_file` upload (must pass one). On upload, the route streams the MP4 to `media/sessions/<id>/source.mp4`, runs `ffprobe_duration` to enforce `MAX_VIDEO_DURATION_SEC`, and stores the URL slot as `upload:<filename>` so downstream code can branch on the prefix. Then: insert DB row → `asyncio.create_task(runner.run(session_id))` → redirect to `/sessions/{id}`. The browser subscribes to `GET /sessions/{id}/events` (SSE) for live progress. Everything happens in one process using `asyncio`.
 
 ### Pipeline stages (`app/pipeline/runner.py`)
 
 1. **Pre-agent (deterministic, checkpointed):**
-   - `youtube.download_video` — yt-dlp downloads full video (not audio-only, because `get_frames` needs the video file)
+   - `youtube.download_video` — yt-dlp downloads full video (not audio-only, because `get_frames` needs the video file). **Short-circuits when `source.mp4` already exists on disk and the URL slot is empty or `upload:`-prefixed** — just ffprobes the existing file. This is how upload-mode sessions skip yt-dlp entirely.
+   - `youtube.trim_video` — *only when `clip_start_sec` / `clip_end_sec` are set on the session.* Re-encodes `source.mp4` in place to the requested window; downstream tools reference timestamps relative to the trimmed file.
    - `youtube.extract_audio` — ffmpeg extracts `.m4a` from the video
-   - `transcribe.transcribe` — HF Whisper via raw HTTP (not OpenAI-compatible), returns word-level timestamps
+   - `transcribe.transcribe` — HF Whisper via raw HTTP (not OpenAI-compatible), returns word-level timestamps. Uses a cross-session `transcript_cache` keyed on `(youtube_url, clip_start, clip_end)`; **bypassed for upload sessions** (filename isn't a stable content key), but per-session resume still works via `step_results`.
 
 2. **Agent loop (`app/agent/loop.py`):** Kimi K2.6 via HF router (OpenAI-compatible), runs up to `MAX_AGENT_TURNS` turns. All tool calls in a single turn run in parallel via `asyncio.gather`. Loop ends when the model calls `finalize_reel` with a valid plan.
 
@@ -63,22 +64,22 @@ Generated assets are saved under `media/sessions/<session_id>/tools/` with filen
 
 ### Checkpointing / resumption (`app/pipeline/checkpoints.py`)
 
-Every expensive operation goes through `checkpointed(session_id, step_key, fn, ...)`. On the first run it executes and writes to `step_results` table. On retry/resume it returns the cached result without re-calling Runway or HF. Step keys: `"download_video"`, `"extract_audio"`, `"transcribe"`, `"assemble"` for pre-agent steps; `"tool:<turn>:<call_id>"` for tool calls.
+Every expensive operation goes through `checkpointed(session_id, step_key, fn, ...)`. On the first run it executes and writes to `step_results` table. On retry/resume it returns the cached result without re-calling Runway or HF. Step keys: `"download_video"`, `"trim_video"` (only when clip bounds set), `"extract_audio"`, `"transcribe"`, `"assemble"` for pre-agent steps; `"tool:<turn>:<call_id>"` for tool calls.
 
 `POST /sessions/{id}/resume` re-runs the runner; `_seed_assets_from_step_results` replays completed tool results back into `ctx.assets` so plan validation still works.
 
-### Events / SSE (`app/pipeline/events.py`)
+### Events / SSE (`app/pipeline/events.py`, `app/routes/sessions.py`)
 
-`publish(session_id, type, payload)` writes to the `events` table and fans out to all active `asyncio.Queue` subscribers. `GET /sessions/{id}/events` backfills from DB then subscribes live. Heartbeat comment every 15s keeps proxies from dropping the connection.
+`publish(session_id, type, payload)` (in `events.py`) writes to the `events` table and fans out to in-process `asyncio.Queue` subscribers. The SSE handler `GET /sessions/{id}/events` (in `routes/sessions.py`) backfills missed events from DB using `Last-Event-ID`, then awaits queue messages with a 15s `asyncio.wait_for` timeout — on timeout it emits a `heartbeat` event so proxies don't drop the connection.
 
 ### Database (`app/db.py`)
 
-SQLite, stdlib `sqlite3`, no ORM. Three tables: `sessions`, `events` (append-only, drives SSE and UI history), `step_results` (resumption cache).
+SQLite, stdlib `sqlite3`, no ORM. Four tables: `sessions`, `events` (append-only, drives SSE and UI history), `step_results` (per-session resumption cache), `transcript_cache` (cross-session Whisper cache keyed on `(youtube_url, clip_start_sec, clip_end_sec)` — `_CLIP_UNSET = -1.0` is the sentinel for unset clip bounds since SQLite treats NULL as distinct in PKs).
 
 ### LLM clients (`app/llm/`)
 
-- `kimi_client.py` — `openai.OpenAI` pointed at `OPENAI_API_BASE_URL` (HF router). Used by the orchestrator loop. Wrapped in `tenacity` retry (4 attempts, exponential jitter) for `RateLimitError`, `APIConnectionError`, `APITimeoutError`, `InternalServerError`.
-- `vision_client.py` — same endpoint, same model, but a separate client used only inside `get_frames`. Sends base64 image data URIs in a one-shot user message.
+- `kimi_client.py` — plain `openai.OpenAI` pointed at `OPENAI_API_BASE_URL` (HF router), cached with `lru_cache`. **No retry wrapper here** — retries live around `_chat()` in `app/agent/loop.py:19` (tenacity, 4 attempts, exponential jitter on `RateLimitError`, `APIConnectionError`, `APITimeoutError`, `InternalServerError`).
+- `vision_client.py` — same endpoint and model, separate client used only inside `get_frames`. Sends base64 image data URIs in a one-shot user message. Has its own `tenacity` retry.
 
 ### Config (`app/config.py`)
 
@@ -92,6 +93,12 @@ Key env vars:
 - `CHARACTER_AVATAR_PRESET` — Runway preset id (default `influencer`)
 - `MIN_REEL_DURATION_SEC` — minimum allowed reel length (default `10.0`)
 - `MAX_REEL_DURATION_SEC` — maximum allowed reel length (default `60.0`)
+- `MAX_VIDEO_DURATION_SEC` — max source-video length in seconds (default `600`). Enforced for both URL downloads and uploads.
+- `MAX_AGENT_TURNS` — hard cap on orchestrator loop iterations (default `25`).
+
+### Optional runtime files
+
+- `cookies_yt.txt` at repo root — Netscape-format YouTube cookies. If present, `app/pipeline/youtube.py` builds `YT_DLP` with `--cookies <path>`. Useful when running on a residential IP that needs auth; rarely effective on cloud/datacenter IPs.
 
 The reel's total duration is **derived** from the plan, not declared by the model: it equals
 the final track's `reel_end`. `finalize_reel` rejects plans whose derived total falls outside
@@ -100,7 +107,7 @@ under `duration_sec` for `assemble.py` to consume.
 
 ### Frontend
 
-Server-rendered Jinja2 HTML (`app/templates/`). No JS framework. The session detail page (`session.html`) uses the browser's native `EventSource` API to consume the SSE stream and renders each event type differently (step checklist, collapsible thinking blocks, tool call/result rows, final video player).
+Server-rendered Jinja2 HTML (`app/templates/`). No JS framework. The index page (`index.html`) form posts as `multipart/form-data` with an optional URL field and an optional `video_file` upload (one is required); it also includes a collapsed `<details>` disclaimer pointing cloud/EC2 users at upload mode with both a web-downloader link and the exact `yt-dlp` CLI command. The session detail page (`session.html`) uses the browser's native `EventSource` API to consume the SSE stream and renders each event type differently (step checklist, collapsible thinking blocks, tool call/result rows, final video player). Upload sessions display the URL slot as `📁 <filename>` instead of a link.
 
 ### Tracing
 

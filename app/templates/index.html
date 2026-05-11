@@ -3,15 +3,51 @@
 
 <div class="card">
   <h2 style="margin-bottom: 16px; font-size: 17px;">New reel</h2>
-  <form method="post" action="/sessions">
+  <form method="post" action="/sessions" enctype="multipart/form-data">
     <div style="display: flex; flex-direction: column; gap: 10px;">
-      <input name="youtube_url" placeholder="https://www.youtube.com/watch?v=…" required style="width: 100%;">
-      <div style="display: flex; align-items: flex-start; gap: 8px; background: #fffbeb; border: 1.5px solid #fde68a; border-radius: var(--radius); padding: 10px 12px;">
-        <span style="font-size: 16px; line-height: 1;">⚠️</span>
-        <p style="font-size: 13px; color: #92400e; margin: 0; line-height: 1.5;">
-          <strong>Clip must be under 5 minutes.</strong> For longer videos, use the Clip fields below to pick a segment — e.g. <strong>3:45</strong> → <strong>7:50</strong>.
-        </p>
+      <input name="youtube_url" placeholder="https://www.youtube.com/watch?v=…" style="width: 100%;">
+
+      <div style="display: flex; align-items: center; gap: 10px;">
+        <span style="flex: 1; height: 1px; background: var(--border);"></span>
+        <span style="font-size: 12px; color: var(--muted); letter-spacing: 0.04em;">OR UPLOAD AN MP4</span>
+        <span style="flex: 1; height: 1px; background: var(--border);"></span>
       </div>
+
+      <input name="video_file" type="file" accept="video/mp4,video/*" style="width: 100%; padding: 8px 10px;">
+
+      <p style="font-size: 12px; color: var(--muted); margin: -4px 0 0 2px;">
+        Max {{ max_video_minutes }} min — for longer videos, use the Clip fields below to pick a segment.
+      </p>
+
+      <details style="background: #fffbeb; border: 1.5px solid #fde68a; border-radius: var(--radius); padding: 10px 12px;" open>
+        <summary style="font-size: 13px; color: #92400e; font-weight: 600;">
+          ⚠️ On the hosted demo? YouTube URLs won't work — please upload an MP4 instead.
+        </summary>
+        <div style="font-size: 13px; color: #92400e; line-height: 1.55; margin-top: 10px;">
+          <p style="margin-bottom: 8px;">
+            This deployment runs on a cloud VM, and YouTube blocks
+            <code style="color: inherit; background: #fef3c7; border-color: #fcd34d;">yt-dlp</code> requests from datacenter IPs
+            (AWS, GCP, Azure) with a "Sign in to confirm you're not a bot" error.
+            The <strong>URL field above will fail here</strong> — use the upload field instead.
+            (Running ReelAgent locally? URLs work fine — feel free to ignore this notice.)
+          </p>
+          <p style="margin-bottom: 6px;"><strong>To grab a YouTube video as MP4 on your machine:</strong></p>
+          <ul style="margin: 0 0 8px 18px; padding: 0;">
+            <li style="margin-bottom: 6px;">
+              <strong>Easy</strong> — use a web downloader like
+              <a href="https://vidssave.com/youtube-video-downloader-3cx" target="_blank" rel="noopener" style="color: #92400e; text-decoration: underline;">vidssave.com</a>
+              (or any "youtube to mp4" site). Pick a 720p MP4.
+            </li>
+            <li>
+              <strong>CLI</strong> — install <code style="color: inherit; background: #fef3c7; border-color: #fcd34d;">yt-dlp</code> and run:
+              <pre style="margin-top: 6px; background: #fef3c7; border-color: #fcd34d; color: #78350f;">yt-dlp -f "bv*[ext=mp4][height&lt;=720]+ba[ext=m4a]/b[ext=mp4][height&lt;=720]/b" \
+       --merge-output-format mp4 -o source.mp4 &lt;youtube-url&gt;</pre>
+            </li>
+          </ul>
+          <p style="margin: 0;">Then pick the resulting MP4 in the upload field above.</p>
+        </div>
+      </details>
+
       <input name="direction" placeholder='Optional direction — "roast it", "explain why this matters"…' style="width: 100%;">
       <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
         <div style="display: flex; align-items: center; gap: 6px;">
@@ -43,7 +79,13 @@
       {% for s in sessions %}
       <tr style="transition: background 0.1s;">
         <td style="padding: 9px 10px; border-bottom: 1px solid var(--border);"><span class="badge {{ s.status }}">{{ s.status }}</span></td>
-        <td style="padding: 9px 10px; border-bottom: 1px solid var(--border); max-width: 280px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 13px;"><a href="{{ s.youtube_url }}" title="{{ s.youtube_url }}">{{ s.youtube_url }}</a></td>
+        <td style="padding: 9px 10px; border-bottom: 1px solid var(--border); max-width: 280px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 13px;">
+          {% if s.youtube_url.startswith("upload:") %}
+            <span title="{{ s.youtube_url[7:] }}">📁 {{ s.youtube_url[7:] }}</span>
+          {% else %}
+            <a href="{{ s.youtube_url }}" title="{{ s.youtube_url }}">{{ s.youtube_url }}</a>
+          {% endif %}
+        </td>
         <td style="padding: 9px 10px; border-bottom: 1px solid var(--border); font-size: 13px; color: var(--muted);">{{ s.direction or "—" }}</td>
         <td style="padding: 9px 10px; border-bottom: 1px solid var(--border); font-size: 12px; color: var(--muted); white-space: nowrap;">{{ s.created_at }}</td>
         <td style="padding: 9px 10px; border-bottom: 1px solid var(--border);"><a href="/sessions/{{ s.id }}" style="font-size: 13px;">view →</a></td>

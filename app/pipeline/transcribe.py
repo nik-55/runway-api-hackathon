@@ -61,7 +61,12 @@ async def transcribe(
     sd = settings.session_dir(session_id)
     out = sd / "transcript.json"
 
-    cached = db.get_cached_transcript(youtube_url, clip_start_sec, clip_end_sec)
+    # Uploaded videos use a session-scoped URL label ("upload:<filename>") that isn't
+    # a stable identifier for the content — two unrelated uploads can share a filename.
+    # Resume already replays via step_results, so skipping this cross-session cache is safe.
+    use_cache = not (youtube_url or "").startswith("upload:")
+
+    cached = db.get_cached_transcript(youtube_url, clip_start_sec, clip_end_sec) if use_cache else None
     if cached is not None:
         out.write_text(json.dumps(cached, ensure_ascii=False, indent=2))
         words = cached.get("words") or []
@@ -100,6 +105,7 @@ async def transcribe(
 
     transcript = {"text": text.strip(), "words": words, "raw_keys": list(data.keys())}
     out.write_text(json.dumps(transcript, ensure_ascii=False, indent=2))
-    db.put_cached_transcript(youtube_url, clip_start_sec, clip_end_sec, transcript)
+    if use_cache:
+        db.put_cached_transcript(youtube_url, clip_start_sec, clip_end_sec, transcript)
     log.info("transcript: %d words, %d chars", len(words), len(text))
     return {"path": str(out), "word_count": len(words), "char_count": len(text), "cached": False}

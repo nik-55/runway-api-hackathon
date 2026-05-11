@@ -37,6 +37,16 @@ async def download_video(session_id: str, youtube_url: str) -> dict:
     out_dir = settings.session_dir(session_id)
     out_path = out_dir / "source.mp4"
 
+    # User-uploaded video — file already on disk, skip yt-dlp entirely.
+    if out_path.exists() and (not youtube_url or youtube_url.startswith("upload:")):
+        duration = await ffprobe_duration(out_path)
+        if duration > settings.max_video_duration_sec:
+            raise ValueError(
+                f"Video too long: {duration:.0f}s > {settings.max_video_duration_sec}s"
+            )
+        title = youtube_url.removeprefix("upload:") if youtube_url else ""
+        return {"path": str(out_path), "duration_sec": duration, "title": title}
+
     # First fetch metadata to enforce length cap before bothering with the download
     rc, stdout, stderr = await _run(
         YT_DLP + ["--no-warnings", "-J", "--skip-download", youtube_url]

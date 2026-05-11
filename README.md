@@ -41,28 +41,25 @@ The entire creative brief — which moment, what to say, how to say it, what to 
 
 ---
 
-### YouTube cookies (required on cloud/server deployments)
+### Running on EC2 / cloud (YouTube URLs are blocked)
 
-YouTube blocks yt-dlp requests from datacenter IP ranges (AWS, GCP, etc.). Providing a `cookies.txt` from a logged-in browser bypasses this.
+YouTube actively blocks `yt-dlp` from datacenter IP ranges (AWS, GCP, Azure). On a cloud deploy, pasting a YouTube URL will almost always fail with a "Sign in to confirm you're not a bot" error. There are two reliable workarounds:
 
-**Export cookies from Chrome (no extension needed):**
+**1. Upload an MP4 directly (recommended).**
+The form accepts an MP4 file alongside the URL field. Grab the video locally first using either:
 
-```bash
-# Install yt-dlp locally if you haven't already
-pip install yt-dlp
+- A web downloader like [vidssave.com](https://vidssave.com/youtube-video-downloader-3cx) — pick a 720p MP4.
+- The `yt-dlp` CLI (matches what the server would have run):
+  ```bash
+  pip install yt-dlp
+  yt-dlp -f "bv*[ext=mp4][height<=720]+ba[ext=m4a]/b[ext=mp4][height<=720]/b" \
+         --merge-output-format mp4 -o source.mp4 <youtube-url>
+  ```
 
-# Export cookies from your Chrome profile
-# Replace "Profile 1" with your actual profile folder name
-# (find it at chrome://version → Profile Path, last path segment)
-yt-dlp --cookies-from-browser "chrome:Profile 1" --cookies cookies.txt --skip-download "https://www.youtube.com"
+Then upload the resulting MP4 via the form. Videos longer than `MAX_VIDEO_DURATION_SEC` (default 600s / 10 min) are rejected — for longer source material, trim before uploading or use the Clip fields to pick a segment.
 
-# Filter to YouTube-only cookies (optional, reduces file size)
-grep -E "^#|youtube\.com|\.youtube\.com" cookies.txt > cookies_yt.txt
-```
-
-Place `cookies_yt.txt` in the repo root. The Docker Compose setup mounts it automatically. Locally, the app detects and uses it if present.
-
-> Cookies expire periodically — re-run the export command when you start seeing bot-detection errors again. Use a throwaway Google account rather than your personal one.
+**2. Optional: provide a cookies file.**
+If you really want URL submission to work on a cloud host, place a `cookies_yt.txt` (Netscape format, exported from a logged-in browser session) at the repo root. The Docker Compose setup mounts it automatically; locally, the app detects and uses it if present. Note that YouTube has been tightening bot detection beyond cookie checks (PO tokens, datacenter IP heuristics), so this often still fails — **the upload path above is the dependable answer.**
 
 ---
 

@@ -4,7 +4,7 @@ services:
     container_name: reelagent
     env_file: .env
     volumes:
-      - ./cookies_yt.txt:/app/cookies_yt.txt:ro
+      - ./cookies_yt.txt:/app/cookies_yt.txt
       - ./media:/app/media
       - ./logs:/app/logs
       - ./data:/app/data

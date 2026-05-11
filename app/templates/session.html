@@ -101,7 +101,11 @@
     {% endif %}
   </div>
   <div style="font-size: 13px; color: var(--muted); word-break: break-all;">
-    <a href="{{ session.youtube_url }}">{{ session.youtube_url }}</a>
+    {% if session.youtube_url.startswith("upload:") %}
+      📁 {{ session.youtube_url[7:] }}
+    {% else %}
+      <a href="{{ session.youtube_url }}">{{ session.youtube_url }}</a>
+    {% endif %}
   </div>
   {% if session.direction %}
   <div style="margin-top: 6px; font-size: 13px; color: var(--muted);">Direction: <em>{{ session.direction }}</em></div>
