@@ -9,11 +9,24 @@ router = APIRouter()
 templates = Jinja2Templates(directory=str(REPO_ROOT / "app" / "templates"))
 
 
+SHOWCASE_ORDER = [
+    "roast-this-project-itself",
+    "bamboo-sleep-repeat-a-Panda-life-plan",
+    "When-the-Pentagon-Finally-Admits-Aliens",
+    "Two-Chatbot-Companies-Worth-More-Than-Most-Countries-What-Could-Go-Wrong",
+]
+
+
 def _list_showcase_reels(limit: int = 5):
     showcase_dir = settings.media_root / "example-generations"
     if not showcase_dir.is_dir():
         return []
-    reels = sorted(showcase_dir.glob("*/reel.mp4"), key=lambda p: p.stat().st_mtime, reverse=True)[:limit]
+    order_index = {slug: i for i, slug in enumerate(SHOWCASE_ORDER)}
+
+    def sort_key(p):
+        return (order_index.get(p.parent.name, len(order_index)), -p.stat().st_mtime)
+
+    reels = sorted(showcase_dir.glob("*/reel.mp4"), key=sort_key)[:limit]
     items = []
     for reel in reels:
         slug = reel.parent.name

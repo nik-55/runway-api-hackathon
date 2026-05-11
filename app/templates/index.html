@@ -85,20 +85,48 @@
   <h2 style="margin-bottom: 16px; font-size: 17px;">Showcase</h2>
   <div style="display: flex; gap: 12px; overflow-x: auto; padding-bottom: 4px;">
     {% for r in showcase_reels %}
-    <div style="flex: 0 0 auto; width: 160px;">
-      <video
-        src="{{ r.video_url }}"
-        {% if r.poster_url %}poster="{{ r.poster_url }}"{% endif %}
-        preload="none"
-        controls
-        playsinline
-        style="width: 160px; height: 284px; object-fit: cover; border-radius: var(--radius); background: #000; display: block; cursor: pointer;"
-      ></video>
+    <div class="showcase-tile" data-video="{{ r.video_url }}" style="flex: 0 0 auto; width: 160px; cursor: pointer;">
+      <div style="position: relative; width: 160px; height: 284px; border-radius: var(--radius); overflow: hidden; background: #111;">
+        {% if r.poster_url %}
+        <img src="{{ r.poster_url }}" alt="" style="width: 100%; height: 100%; object-fit: cover; display: block;">
+        {% endif %}
+        <div class="play-overlay" style="position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; background: rgba(0,0,0,0.18); transition: background 0.15s;">
+          <div style="width: 48px; height: 48px; border-radius: 50%; background: rgba(0,0,0,0.55); display: flex; align-items: center; justify-content: center;">
+            <span style="color: #fff; font-size: 18px; margin-left: 3px;">▶</span>
+          </div>
+        </div>
+      </div>
       <div style="font-size: 12px; color: var(--muted); margin-top: 6px; line-height: 1.35; overflow: hidden; text-overflow: ellipsis; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;" title="{{ r.title }}">{{ r.title }}</div>
     </div>
     {% endfor %}
   </div>
 </div>
+
+<script>
+  document.querySelectorAll(".showcase-tile").forEach(function (tile) {
+    tile.addEventListener("click", function () {
+      const src = tile.dataset.video;
+      if (!src) return;
+      const wrap = tile.querySelector("div");
+      wrap.innerHTML = "";
+      const v = document.createElement("video");
+      v.src = src;
+      v.controls = true;
+      v.autoplay = true;
+      v.playsInline = true;
+      v.style.cssText = "width: 100%; height: 100%; object-fit: contain; display: block; background: #000;";
+      wrap.appendChild(v);
+      const req = v.requestFullscreen || v.webkitEnterFullscreen || v.webkitRequestFullscreen;
+      if (req) {
+        try {
+          const p = req.call(v);
+          if (p && typeof p.catch === "function") p.catch(function () {});
+        } catch (e) {}
+      }
+      v.play().catch(function () {});
+    }, { once: true });
+  });
+</script>
 {% endif %}
 
 <div class="card">

@@ -53,3 +53,28 @@ Clip a 30–60s stretch where the news anchor sets up the "Pentagon releases UFO
 > "Build the reel like this: open on the news anchor delivering the 'Pentagon releases UFO files' headline with maximum gravitas → cut to an animated 'wait, ALIENS?!' meme as a video overlay with a dramatic record-scratch sound effect → back to footage of the actual bureaucratic-looking documents or officials reading prepared statements → drop a sad-trombone sound effect as audio overlay → character commentator pops in with the first reaction ('60 years of cover-ups for THIS PowerPoint?') → cut back to more footage of the dry official briefing or redacted pages → layer an animated 'this is fine' / shrug meme on top with an awkward-silence sound effect → close with the SAME character commentator delivering the final verdict on humanity's biggest reveal being a PDF dump. Use at least 2 animated memes, 2–3 sound effects, and 2 character commentary moments — the two character moments must come from ONE character video split across the timeline (use start_sec/end_sec on the asset source to play the first half in the middle and the second half at the end). Interleave video overlays and audio overlays across the reel, never bunched at the end."
 
 ---
+
+## 5. OpenAI vs Anthropic $1T IPO Battle — Vantage on Firstpost
+
+**Title:** Two Chatbot Companies Worth More Than Most Countries — What Could Go Wrong?
+
+**What to clip:**
+Clip a 30–60s stretch where the news anchor breathlessly frames the "$1 trillion AI IPO battle" between OpenAI and Anthropic with maximum stock-market-thriller gravitas, then cuts to b-roll of generic server racks, stock charts going up-and-to-the-right, and suited executives saying things like "AGI" and "transforming humanity." The gap between "trillion-dollar civilization-defining race" framing and the reality of two startups burning cash to make slightly-better autocomplete is the money moment.
+
+**Directional comment for agent:**
+> "Build the reel like this: open on the news anchor delivering the '$1 trillion AI IPO battle' headline with maximum stock-market-thriller gravitas → flash a static reaction-image overlay of a wide-eyed 'wait, A TRILLION?!' face paired with a dramatic record-scratch sound effect → back to footage of the generic server racks, up-and-to-the-right stock charts, or suited executives saying 'AGI' and 'transforming humanity' → drop a cash-register / 'ka-ching' sound effect as audio overlay → character commentator pops in with the first reaction ('a trillion bucks for two chatbots that still can't count the Rs in strawberry?') → cut back to more footage of the executives hyping the race or the rocket-ship valuation charts → layer an animated 'money on fire' / dumpster-fire meme on top with a sad-trombone sound effect → close with the SAME character commentator delivering the final verdict on civilization's biggest bet being a glorified autocomplete bake-off. Use a mix of one static reaction image and one animated meme (2 visual overlays total), 2–3 sound effects, and 2 character commentary moments — the static reaction image must land simultaneously with a sound effect so the still frame hits like a punchline. The two character moments must come from ONE character video split across the timeline (use start_sec/end_sec on the asset source to play the first half in the middle and the second half at the end). Interleave video overlays and audio overlays across the reel, never bunched at the end."
+
+---
+
+## 6. What Did Ancient Humans Do at Night?
+
+**Theme:** Atmospheric campfire-storytelling / "did you know" wonder — *not* a roast. The character is a curious narrator pulling the viewer in, not a snarky commentator.
+
+**What to clip:**
+A 30–45s stretch where the video describes prehistoric humans gathering around fires, telling stories, stargazing, or sleeping in shifts. Pick the most visually evocative passage — cave walls, firelight, night skies.
+
+**Directional comment for agent:**
+> "Theme: hushed campfire-storytelling wonder — the character is a curious narrator, not a snarky commentator. Pick whatever moment in the source feels most atmospheric.
+> Body of the reel uses 1 animated overlay + 1 static reaction image (timed with a sound effect for punchline impact) + 2–3 ambient/wonder sound effects (no record-scratches, no sad-trombones); save the character for ONE closing moment that delivers the final wonder-line at the very end."
+
+---

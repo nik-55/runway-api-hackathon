@@ -21,12 +21,14 @@ def _generate_showcase_posters() -> None:
         if poster.exists():
             continue
         result = subprocess.run(
-            ["ffmpeg", "-y", "-ss", "0.5", "-i", str(reel),
-             "-frames:v", "1", "-q:v", "3", str(poster)],
+            ["ffmpeg", "-hide_banner", "-loglevel", "error", "-y",
+             "-ss", "2", "-i", str(reel),
+             "-frames:v", "1", "-q:v", "3", "-vf", "scale=540:-2",
+             str(poster)],
             check=False, capture_output=True,
         )
         if result.returncode != 0:
-            log.warning("showcase poster gen failed for %s: %s", reel, result.stderr.decode("utf-8", "ignore")[:300])
+            log.warning("showcase poster gen failed for %s: %s", reel, result.stderr.decode("utf-8", "ignore").strip())
 
 
 def create_app() -> FastAPI:
