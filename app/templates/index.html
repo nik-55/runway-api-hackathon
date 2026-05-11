@@ -6,6 +6,12 @@
   <form method="post" action="/sessions">
     <div style="display: flex; flex-direction: column; gap: 10px;">
       <input name="youtube_url" placeholder="https://www.youtube.com/watch?v=…" required style="width: 100%;">
+      <div style="display: flex; align-items: flex-start; gap: 8px; background: #fffbeb; border: 1.5px solid #fde68a; border-radius: var(--radius); padding: 10px 12px;">
+        <span style="font-size: 16px; line-height: 1;">⚠️</span>
+        <p style="font-size: 13px; color: #92400e; margin: 0; line-height: 1.5;">
+          <strong>Clip must be under 5 minutes.</strong> For longer videos, use the Clip fields below to pick a segment — e.g. <strong>3:45</strong> → <strong>7:50</strong>.
+        </p>
+      </div>
       <input name="direction" placeholder='Optional direction — "roast it", "explain why this matters"…' style="width: 100%;">
       <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
         <div style="display: flex; align-items: center; gap: 6px;">

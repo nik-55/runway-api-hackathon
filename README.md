@@ -8,6 +8,10 @@ A single AI agent reads the transcript, picks the most interesting moment, write
 
 ## Demo
 
+<iframe width="560" height="315" src="https://www.youtube.com/embed/EMIqnpeBcDA?si=CnIPvR_sVHdKCCVc" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>
+
+[![ReelAgent Demo](https://img.youtube.com/vi/EMIqnpeBcDA/maxresdefault.jpg)](https://www.youtube.com/watch?v=EMIqnpeBcDA)
+
 > *YouTube URL + optional direction → short vertical MP4 with a lip-synced character, reaction imagery, sound effects, and cleaned source audio — assembled in one agent loop.*
 
 ---
@@ -34,6 +38,31 @@ The entire creative brief — which moment, what to say, how to say it, what to 
 - `ffmpeg` installed on your system (`brew install ffmpeg` / `apt install ffmpeg`)
 - A Runway API key — [get one at app.runwayml.com](https://app.runwayml.com)
 - A Hugging Face token — [get one at huggingface.co/settings/tokens](https://huggingface.co/settings/tokens) (used for the Kimi K2.6 LLM + Whisper transcription)
+
+---
+
+### YouTube cookies (required on cloud/server deployments)
+
+YouTube blocks yt-dlp requests from datacenter IP ranges (AWS, GCP, etc.). Providing a `cookies.txt` from a logged-in browser bypasses this.
+
+**Export cookies from Chrome (no extension needed):**
+
+```bash
+# Install yt-dlp locally if you haven't already
+pip install yt-dlp
+
+# Export cookies from your Chrome profile
+# Replace "Profile 1" with your actual profile folder name
+# (find it at chrome://version → Profile Path, last path segment)
+yt-dlp --cookies-from-browser "chrome:Profile 1" --cookies cookies.txt --skip-download "https://www.youtube.com"
+
+# Filter to YouTube-only cookies (optional, reduces file size)
+grep -E "^#|youtube\.com|\.youtube\.com" cookies.txt > cookies_yt.txt
+```
+
+Place `cookies_yt.txt` in the repo root. The Docker Compose setup mounts it automatically. Locally, the app detects and uses it if present.
+
+> Cookies expire periodically — re-run the export command when you start seeing bot-detection errors again. Use a throwaway Google account rather than your personal one.
 
 ---
 

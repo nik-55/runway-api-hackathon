@@ -10,7 +10,12 @@ from app.logging_setup import get_logger
 
 log = get_logger(__name__)
 
-YT_DLP = [sys.executable, "-m", "yt_dlp"]
+_COOKIES = Path(__file__).parents[2] / "cookies_yt.txt"
+YT_DLP = (
+    [sys.executable, "-m", "yt_dlp", "--cookies", str(_COOKIES)]
+    if _COOKIES.exists()
+    else [sys.executable, "-m", "yt_dlp"]
+)
 
 
 async def _run(cmd: list[str]) -> tuple[int, str, str]:

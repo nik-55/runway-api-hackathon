@@ -1,0 +1,544 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ReelAgent</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: monospace;
+    background: #f8f8f8;
+    color: #111;
+    height: 100vh;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .slides { flex: 1; position: relative; overflow: hidden; }
+
+  .slide {
+    position: absolute;
+    inset: 0;
+    display: none;
+    padding: 48px 72px;
+    flex-direction: column;
+    justify-content: center;
+  }
+  .slide.active { display: flex; }
+
+  /* ── typography ── */
+  h1 { font-size: 2.8rem; font-weight: 700; letter-spacing: -0.02em; line-height: 1.1; }
+  h2 { font-size: 1rem; color: #888; font-weight: 400; margin-top: 0.3em; }
+  .label {
+    font-size: 0.65rem; letter-spacing: 0.12em; text-transform: uppercase;
+    color: #aaa; margin-bottom: 1rem;
+  }
+
+  ul { list-style: none; }
+  ul li { padding: 0.3em 0 0.3em 1.2em; position: relative; font-size: 0.95rem; color: #333; line-height: 1.5; }
+  ul li::before { content: "–"; position: absolute; left: 0; color: #bbb; }
+
+  /* ── controls ── */
+  .controls {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 9px 24px; border-top: 1px solid #e0e0e0;
+    font-size: 0.72rem; color: #aaa; flex-shrink: 0;
+  }
+  .nav { display: flex; gap: 8px; }
+  .btn {
+    background: #fff; border: 1px solid #ddd; color: #666;
+    padding: 4px 12px; border-radius: 3px; cursor: pointer;
+    font-family: monospace; font-size: 0.72rem;
+  }
+  .btn:hover { background: #f0f0f0; color: #111; border-color: #bbb; }
+  .btn:disabled { opacity: 0.25; cursor: default; }
+
+  /* ══════════════════════════════
+     SLIDE 1
+  ══════════════════════════════ */
+  #s1 .hero { margin-bottom: 2rem; }
+  #s1 .hero h1 span { color: #111; }
+  #s1 .hero p {
+    margin-top: 0.7rem; font-size: 1.05rem; color: #888;
+    border-left: 2px solid #ddd; padding-left: 0.8rem;
+    max-width: 560px;
+  }
+
+  #s1 .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 2.5rem; margin-top: 0.5rem; }
+
+  #s1 .block-title {
+    font-size: 0.65rem; letter-spacing: 0.12em; text-transform: uppercase;
+    color: #555; margin-bottom: 0.6rem;
+  }
+
+  /* ══════════════════════════════
+     SLIDE 2
+  ══════════════════════════════ */
+  #s2 { padding: 32px 56px; justify-content: flex-start; }
+  #s2 h1 { font-size: 1.9rem; margin-bottom: 0.2em; }
+
+  /* Runway banner */
+  .runway-banner {
+    display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+    background: #fff; border: 1px solid #e0e0e0;
+    border-radius: 4px; padding: 7px 14px; margin: 10px 0 14px;
+    font-size: 0.72rem;
+  }
+  .runway-banner .rl { color: #aaa; white-space: nowrap; }
+  .rtag {
+    background: #f4f4f4; border: 1px solid #ddd;
+    padding: 2px 8px; border-radius: 3px; color: #444; white-space: nowrap;
+  }
+
+  /* two-column layout */
+  #s2 .arch { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; flex: 1; min-height: 0; }
+
+  /* ── left: pipeline flow ── */
+  .pipeline { display: flex; flex-direction: column; gap: 0; }
+
+  .pipe-step {
+    display: flex; align-items: stretch; gap: 0;
+  }
+
+  .pipe-line-col {
+    display: flex; flex-direction: column; align-items: center;
+    width: 28px; flex-shrink: 0;
+  }
+  .pipe-dot {
+    width: 8px; height: 8px; border-radius: 50%;
+    background: #ddd; border: 1px solid #bbb; flex-shrink: 0; margin-top: 2px;
+  }
+  .pipe-dot.accent { background: #ccc; border-color: #999; }
+  .pipe-vert { width: 1px; background: #e0e0e0; flex: 1; min-height: 6px; }
+
+  .pipe-content { padding: 0 0 10px 4px; flex: 1; }
+  .pipe-name { font-size: 0.8rem; color: #111; font-weight: 700; }
+  .pipe-desc { font-size: 0.72rem; color: #999; margin-top: 1px; }
+  .pipe-out  { font-size: 0.7rem; color: #aaa; margin-top: 2px; }
+
+  /* agent loop box */
+  .agent-box {
+    border: 1px solid #e0e0e0; border-radius: 5px;
+    background: #fff; padding: 12px 14px; margin-bottom: 10px;
+  }
+  .agent-box-title {
+    font-size: 0.65rem; letter-spacing: 0.12em; text-transform: uppercase;
+    color: #aaa; margin-bottom: 8px;
+  }
+
+  .agent-context {
+    background: #f9f9f9; border: 1px solid #e8e8e8; border-radius: 3px;
+    padding: 7px 10px; margin-bottom: 8px; font-size: 0.72rem; color: #666;
+  }
+  .agent-context strong { color: #333; display: block; margin-bottom: 3px; }
+  .agent-context ul { margin: 0; }
+  .agent-context ul li { font-size: 0.7rem; color: #888; padding: 0.1em 0 0.1em 1em; }
+  .agent-context ul li::before { color: #ccc; }
+
+  .react-loop {
+    border: 1px solid #e8e8e8; border-radius: 3px;
+    padding: 8px 10px; font-size: 0.7rem; color: #999;
+    display: flex; flex-direction: column; gap: 3px;
+  }
+  .react-row { display: flex; align-items: center; gap: 6px; }
+  .react-box {
+    background: #f4f4f4; border: 1px solid #e0e0e0; border-radius: 2px;
+    padding: 3px 8px; color: #333; font-size: 0.7rem; white-space: nowrap;
+  }
+  .react-box.dim { color: #aaa; }
+  .react-arrow { color: #ccc; font-size: 0.8rem; }
+  .react-note { color: #bbb; font-size: 0.65rem; padding-left: 2px; }
+  .react-sep { border: none; border-top: 1px dashed #e8e8e8; margin: 4px 0; }
+  .react-end { color: #666; font-size: 0.7rem; }
+  .react-end span { color: #111; }
+
+  .pipe-final {
+    display: flex; align-items: center; gap: 8px; margin-top: 6px;
+  }
+  .pipe-final-step {
+    background: #f4f4f4; border: 1px solid #ddd; border-radius: 3px;
+    padding: 4px 10px; font-size: 0.75rem; color: #555;
+  }
+  .pipe-final-arrow { color: #ccc; font-size: 0.9rem; }
+  .pipe-final-out {
+    background: #f0f0f0; border: 1px solid #bbb; border-radius: 3px;
+    padding: 4px 10px; font-size: 0.75rem; color: #111; font-weight: 700;
+  }
+
+  /* ── right: tools ── */
+  .tools-col { display: flex; flex-direction: column; gap: 4px; overflow-y: auto; }
+
+  .tool-item { border: 1px solid #e4e4e4; border-radius: 4px; overflow: hidden; }
+
+  .tool-header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 8px 12px; cursor: pointer; user-select: none;
+    background: #fff;
+  }
+  .tool-header:hover { background: #f9f9f9; }
+
+  .tool-header-left { display: flex; align-items: center; gap: 8px; }
+  .tool-fn { font-size: 0.82rem; color: #111; font-weight: 700; }
+  .tool-badge {
+    font-size: 0.6rem; padding: 1px 6px; border-radius: 2px;
+    border: 1px solid #e0e0e0; color: #999; background: #f8f8f8;
+    white-space: nowrap;
+  }
+  .tool-badge.runway { border-color: #d0d0d0; color: #555; background: #f4f4f4; }
+  .tool-toggle { color: #bbb; font-size: 0.75rem; transition: transform 0.15s; }
+  .tool-item.open .tool-toggle { transform: rotate(90deg); }
+
+  .tool-body {
+    display: none; padding: 8px 12px 10px;
+    border-top: 1px solid #eee; background: #fafafa;
+  }
+  .tool-item.open .tool-body { display: block; }
+
+  .tool-desc { font-size: 0.75rem; color: #666; line-height: 1.5; }
+  .tool-model { margin-top: 5px; font-size: 0.7rem; color: #aaa; }
+  .tool-model span { color: #333; }
+
+  /* ══════════════════════════════
+     SLIDE 3 — links
+  ══════════════════════════════ */
+  #s3 .links { margin-top: 2rem; display: flex; flex-direction: column; gap: 1.8rem; }
+  .link-label { font-size: 0.65rem; letter-spacing: 0.1em; text-transform: uppercase; color: #aaa; margin-bottom: 0.3em; }
+  .link-url {
+    font-size: 1.1rem; color: #111; text-decoration: none;
+    border-bottom: 1px solid #ddd; padding-bottom: 2px; display: inline-block;
+  }
+  .link-url:hover { color: #000; border-color: #888; }
+
+  /* ══════════════════════════════
+     SLIDE 4 — demo
+  ══════════════════════════════ */
+  #s4 { align-items: center; justify-content: center; text-align: center; }
+  #s4 h1 { font-size: 6rem; color: #111; }
+  #s4 p { color: #ccc; font-size: 0.8rem; margin-top: 1.2rem; }
+</style>
+</head>
+<body>
+
+<div class="slides">
+
+  <!-- ══════════════════════════════════════════
+       SLIDE 1 — What is ReelAgent
+  ══════════════════════════════════════════ -->
+  <div class="slide active" id="s1">
+    <div class="label">1 / 4</div>
+
+    <div class="hero">
+      <h1><span>ReelAgent</span></h1>
+      <h2>AI Reaction Reel Generator — Runway API Hackathon</h2>
+      <p>Paste a YouTube URL. Get a finished reaction reel with a lip-synced character commentator. No editing. No prompting individual tools.</p>
+    </div>
+
+    <ul style="margin-top:1.8rem; display:flex; flex-direction:column; gap:0.5rem;">
+      <li>YouTube videos are long — most of the value lives in 30 seconds</li>
+      <li>Paste a URL, optionally type a direction, and the agent handles everything</li>
+      <li>An AI picks the sharpest moment, writes a reaction take, and calls Runway to generate the assets</li>
+      <li>A lip-synced avatar character delivers the commentary — no filming, no editing</li>
+      <li>Output is a finished reel, ready to post</li>
+    </ul>
+  </div>
+
+
+  <!-- ══════════════════════════════════════════
+       SLIDE 2 — Architecture
+  ══════════════════════════════════════════ -->
+  <div class="slide" id="s2">
+    <div class="label">2 / 4</div>
+    <h1>Architecture</h1>
+
+    <div class="runway-banner">
+      <span class="rl">Runway APIs used →</span>
+      <span class="rtag">gen4_image</span>
+      <span class="rtag">gen4.5 (text_to_video)</span>
+      <span class="rtag">gwm1_avatars (avatar_videos)</span>
+      <span class="rtag">eleven_text_to_sound_v2</span>
+      <span class="rtag">eleven_voice_isolation</span>
+    </div>
+
+    <div class="arch">
+
+      <!-- LEFT — pipeline + agent loop -->
+      <div class="pipeline">
+
+        <!-- pre-agent steps -->
+        <div class="pipe-step">
+          <div class="pipe-line-col"><div class="pipe-dot accent"></div><div class="pipe-vert"></div></div>
+          <div class="pipe-content">
+            <div class="pipe-name">YouTube URL + direction</div>
+            <div class="pipe-desc">user input — direction is optional ("roast it", "make it serious")</div>
+          </div>
+        </div>
+
+        <div class="pipe-step">
+          <div class="pipe-line-col"><div class="pipe-dot"></div><div class="pipe-vert"></div></div>
+          <div class="pipe-content">
+            <div class="pipe-name">yt-dlp — download</div>
+            <div class="pipe-out">→ source.mp4 (needed for get_frames + audio extraction)</div>
+          </div>
+        </div>
+
+        <div class="pipe-step">
+          <div class="pipe-line-col"><div class="pipe-dot"></div><div class="pipe-vert"></div></div>
+          <div class="pipe-content">
+            <div class="pipe-name">ffmpeg — extract audio</div>
+            <div class="pipe-out">→ source.m4a</div>
+          </div>
+        </div>
+
+        <div class="pipe-step">
+          <div class="pipe-line-col"><div class="pipe-dot"></div><div class="pipe-vert"></div></div>
+          <div class="pipe-content">
+            <div class="pipe-name">Whisper (HF Inference) — transcribe</div>
+            <div class="pipe-out">→ transcript.json with word-level timestamps</div>
+          </div>
+        </div>
+
+        <!-- agent loop box -->
+        <div class="pipe-step" style="align-items:flex-start">
+          <div class="pipe-line-col" style="height:100%"><div class="pipe-dot accent"></div><div class="pipe-vert"></div></div>
+          <div class="pipe-content" style="padding-bottom:12px">
+            <div class="agent-box">
+              <div class="agent-box-title">Kimi K2.6 — thinking model · up to 25 turns · 128K context</div>
+
+              <div class="agent-context">
+                <strong>Context each turn</strong>
+                <ul>
+                  <li>System prompt — pick ONE sharp moment; write a take, not a recap; beats first, assets second; emotion markers for avatar delivery</li>
+                  <li>Full transcript + user direction</li>
+                  <li>All previous tool results (loop never prunes messages)</li>
+                </ul>
+              </div>
+
+              <div class="react-loop">
+                <div class="react-row">
+                  <div class="react-box">LLM reasons</div>
+                  <div class="react-arrow">→</div>
+                  <div class="react-box">calls tool(s)</div>
+                  <div class="react-arrow">→</div>
+                  <div class="react-box dim">parallel via asyncio.gather</div>
+                </div>
+                <div class="react-row">
+                  <div class="react-arrow" style="padding-left:12px">↓</div>
+                </div>
+                <div class="react-row">
+                  <div class="react-box">tool results appended</div>
+                  <div class="react-arrow">→</div>
+                  <div class="react-box dim">LLM sees result + reasons again</div>
+                  <div class="react-arrow">↺</div>
+                </div>
+                <hr class="react-sep">
+                <div class="react-end">loop exits when model calls <span>finalize_reel(plan)</span> with a valid plan</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- assembly + output -->
+        <div class="pipe-step">
+          <div class="pipe-line-col"><div class="pipe-dot"></div><div class="pipe-vert"></div></div>
+          <div class="pipe-content">
+            <div class="pipe-name">plan.json written to disk</div>
+            <div class="pipe-desc">tracks, overlays, audio_overlays — validated by pydantic</div>
+          </div>
+        </div>
+
+        <div class="pipe-step">
+          <div class="pipe-line-col"><div class="pipe-dot accent"></div><div class="pipe-vert" style="background:transparent"></div></div>
+          <div class="pipe-content">
+            <div class="pipe-final">
+              <div class="pipe-final-step">ffmpeg assembly</div>
+              <div class="pipe-final-arrow">→</div>
+              <div class="pipe-final-out">reel.mp4 &nbsp;720×1280 · 30fps</div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- RIGHT — tools -->
+      <div class="tools-col">
+
+        <div class="tool-item" onclick="toggleTool(this)">
+          <div class="tool-header">
+            <div class="tool-header-left">
+              <span class="tool-fn">get_frames</span>
+              <span class="tool-badge">local · vision sub-call</span>
+            </div>
+            <span class="tool-toggle">▶</span>
+          </div>
+          <div class="tool-body">
+            <div class="tool-desc">ffmpeg extracts frames from the source video, passes them to a Kimi vision sub-call with a text prompt, returns text only. Raw images never reach the orchestrator — keeps main context lean. Used when transcript alone is ambiguous.</div>
+            <div class="tool-model">Model: <span>Kimi K2.6 (same HF endpoint, separate completion)</span></div>
+          </div>
+        </div>
+
+        <div class="tool-item" onclick="toggleTool(this)">
+          <div class="tool-header">
+            <div class="tool-header-left">
+              <span class="tool-fn">generate_reaction_image</span>
+              <span class="tool-badge runway">Runway</span>
+            </div>
+            <span class="tool-toggle">▶</span>
+          </div>
+          <div class="tool-body">
+            <div class="tool-desc">Generates a still meme-style or reaction image. Used when the agent wants a punchy static visual cut — a bold text card, a reaction face, a meme beat. 9:16 vertical.</div>
+            <div class="tool-model">Model: <span>gen4_image</span></div>
+          </div>
+        </div>
+
+        <div class="tool-item" onclick="toggleTool(this)">
+          <div class="tool-header">
+            <div class="tool-header-left">
+              <span class="tool-fn">generate_animated_reaction</span>
+              <span class="tool-badge runway">Runway</span>
+            </div>
+            <span class="tool-toggle">▶</span>
+          </div>
+          <div class="tool-body">
+            <div class="tool-desc">Generates a short text-to-video reaction clip — the equivalent of a reaction GIF but created fresh for this moment. Can also be used as an overlay on top of the source (e.g. cartoon "NO", exploding emoji, money flying). Duration: 4, 6, or 8 seconds.</div>
+            <div class="tool-model">Model: <span>gen4.5</span></div>
+          </div>
+        </div>
+
+        <div class="tool-item" onclick="toggleTool(this)">
+          <div class="tool-header">
+            <div class="tool-header-left">
+              <span class="tool-fn">generate_sound_effect</span>
+              <span class="tool-badge runway">Runway</span>
+            </div>
+            <span class="tool-toggle">▶</span>
+          </div>
+          <div class="tool-body">
+            <div class="tool-desc">Generates an audio sting — record scratch, vine boom, dramatic reverb, comedic hit. Layered under a cut to punctuate the joke or the reveal.</div>
+            <div class="tool-model">Model: <span>eleven_text_to_sound_v2</span></div>
+          </div>
+        </div>
+
+        <div class="tool-item" onclick="toggleTool(this)">
+          <div class="tool-header">
+            <div class="tool-header-left">
+              <span class="tool-fn">generate_character_video</span>
+              <span class="tool-badge runway">Runway · always called</span>
+            </div>
+            <span class="tool-toggle">▶</span>
+          </div>
+          <div class="tool-body">
+            <div class="tool-desc">Generates a lip-synced avatar video of the commentary script. Script includes inline emotion markers — [shocked], [laughing], [sarcastic], [deadpan], etc. — that score how each line is delivered. The agent must call this exactly once.</div>
+            <div class="tool-model">Model: <span>gwm1_avatars (avatar_videos)</span></div>
+          </div>
+        </div>
+
+        <div class="tool-item" onclick="toggleTool(this)">
+          <div class="tool-header">
+            <div class="tool-header-left">
+              <span class="tool-fn">isolate_voice</span>
+              <span class="tool-badge runway">Runway · always called</span>
+            </div>
+            <span class="tool-toggle">▶</span>
+          </div>
+          <div class="tool-body">
+            <div class="tool-desc">Slices the source audio with ffmpeg then runs voice isolation on it. Required for any window of original audio kept audible in the reel — removes background noise and music.</div>
+            <div class="tool-model">Model: <span>eleven_voice_isolation</span></div>
+          </div>
+        </div>
+
+        <div class="tool-item" onclick="toggleTool(this)">
+          <div class="tool-header">
+            <div class="tool-header-left">
+              <span class="tool-fn">finalize_reel</span>
+              <span class="tool-badge">ends the loop</span>
+            </div>
+            <span class="tool-toggle">▶</span>
+          </div>
+          <div class="tool-body">
+            <div class="tool-desc">The agent submits its full assembly plan. Pydantic validates it — tracks must tile from 0 with no gaps, all asset_ids must exist, total duration must be in range. On valid: writes plan.json and exits the loop. On invalid: returns the error so the agent corrects itself.</div>
+            <div class="tool-model">Backend: <span>pydantic validation → plan.json → ffmpeg assembly</span></div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+
+  <!-- ══════════════════════════════════════════
+       SLIDE 3 — Links
+  ══════════════════════════════════════════ -->
+  <div class="slide" id="s3">
+    <div class="label">3 / 4</div>
+    <h1>Links</h1>
+    <div class="links">
+      <div>
+        <div class="link-label">Demo web app</div>
+        <a class="link-url" href="https://runway-hackathon.nik-55.dedyn.io" target="_blank">https://runway-hackathon.nik-55.dedyn.io</a>
+      </div>
+      <div>
+        <div class="link-label">GitHub</div>
+        <a class="link-url" href="https://github.com/nik-55/runway-api-hackathon" target="_blank">https://github.com/nik-55/runway-api-hackathon</a>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- ══════════════════════════════════════════
+       SLIDE 4 — Demo
+  ══════════════════════════════════════════ -->
+  <div class="slide" id="s4">
+    <div class="label" style="position:absolute;top:32px;left:56px;">4 / 4</div>
+    <h1>Demo</h1>
+    <p>← / → to navigate &nbsp;·&nbsp; F to fullscreen</p>
+  </div>
+
+</div>
+
+<!-- controls bar -->
+<div class="controls">
+  <div class="nav">
+    <button class="btn" id="btn-prev" onclick="go(-1)">← prev</button>
+    <button class="btn" id="btn-next" onclick="go(1)">next →</button>
+  </div>
+  <span id="counter" style="color:#333">1 / 4</span>
+  <button class="btn" onclick="toggleFs()">⛶ fullscreen</button>
+</div>
+
+<script>
+  const slides = document.querySelectorAll('.slide');
+  let cur = 0;
+
+  function show(n) {
+    slides[cur].classList.remove('active');
+    cur = Math.max(0, Math.min(slides.length - 1, n));
+    slides[cur].classList.add('active');
+    document.getElementById('counter').textContent = (cur + 1) + ' / ' + slides.length;
+    document.getElementById('btn-prev').disabled = cur === 0;
+    document.getElementById('btn-next').disabled = cur === slides.length - 1;
+  }
+
+  function go(d) { show(cur + d); }
+
+  document.addEventListener('keydown', e => {
+    if (['ArrowRight','ArrowDown',' '].includes(e.key)) go(1);
+    if (['ArrowLeft','ArrowUp'].includes(e.key)) go(-1);
+    if (e.key === 'f' || e.key === 'F') toggleFs();
+  });
+
+  function toggleFs() {
+    if (!document.fullscreenElement) document.documentElement.requestFullscreen().catch(()=>{});
+    else document.exitFullscreen();
+  }
+
+  function toggleTool(el) {
+    el.classList.toggle('open');
+  }
+
+  show(0);
+</script>
+</body>
+</html>
