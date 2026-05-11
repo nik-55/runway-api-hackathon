@@ -52,12 +52,12 @@ Each tool is `async def call(ctx: SessionCtx, **kwargs) -> dict`. All tool schem
 
 | Tool | Backend | What it returns |
 |---|---|---|
-| `get_frames` | ffmpeg + Kimi vision sub-call | `{"answer": str}` — text only |
+| `get_frames` | ffmpeg + Kimi vision sub-call | `{"answer": str, "frame_count": int, "window": [start, end]}` |
 | `generate_reaction_image` | Runway `gen4_image` | `{"asset_id": str}` |
 | `generate_animated_reaction` | Runway `gen4.5` | `{"asset_id": str, "duration_sec": int}` |
-| `generate_sound_effect` | Runway `eleven_text_to_sound_v2` | `{"asset_id": str, "duration_sec": int}` |
+| `generate_sound_effect` | Runway `eleven_text_to_sound_v2` | `{"asset_id": str, "duration_sec": float}` |
 | `generate_character_video` | Runway `gwm1_avatars` (avatar_videos) | `{"asset_id": str, "duration_sec": float}` |
-| `isolate_voice` | ffmpeg slice + Runway `eleven_voice_isolation` | `{"asset_id": str, "duration_sec": float}` |
+| `isolate_voice` | ffmpeg slice + Runway `eleven_voice_isolation` | `{"asset_id": str, "duration_sec": float, "window": [start, end]}` |
 | `finalize_reel` | pydantic validation + writes plan.json | signals loop exit |
 
 Generated assets are saved under `media/sessions/<session_id>/tools/` with filenames `<type>_<asset_id>.<ext>`. The `SessionCtx.assets` dict maps `asset_id → {kind, path, duration_sec, tool}`.
@@ -91,6 +91,7 @@ Key env vars:
 - `OPENAI_API_BASE_URL` — default `https://router.huggingface.co/v1`
 - `OPENAI_MODEL_NAME` — default `moonshotai/Kimi-K2.6:fireworks-ai`
 - `CHARACTER_AVATAR_PRESET` — Runway preset id (default `influencer`)
+- `CHARACTER_VOICE_PRESET` — Runway voice preset (default `ruby`)
 - `MIN_REEL_DURATION_SEC` — minimum allowed reel length (default `10.0`)
 - `MAX_REEL_DURATION_SEC` — maximum allowed reel length (default `60.0`)
 - `MAX_VIDEO_DURATION_SEC` — max source-video length in seconds (default `600`). Enforced for both URL downloads and uploads.
