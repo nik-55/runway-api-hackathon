@@ -212,8 +212,10 @@
     <div class="ev agent-plan">
       <div class="ev-icon">📋</div>
       <div class="ev-body">
-        <div class="ev-label" style="margin-bottom: 4px;">plan</div>
-        <div class="plan-body">{{ p.plan }}</div>
+        <details class="ev-collapse">
+          <summary><span class="ev-label">plan</span>&nbsp;<span style="color:var(--muted2);">({{ p.plan|length }} chars)</span></summary>
+          <div class="plan-body" style="margin-top: 6px;">{{ p.plan }}</div>
+        </details>
       </div>
     </div>
     {% elif ev.type == "agent.tool_call" %}
@@ -322,6 +324,7 @@
       body = `<div>${esc(p.name||"")} — ${esc(p.error||"")}</div>`;
     } else if (t === "agent.thinking") {
       icon = "💭"; iconStyle = "background:#ede9fe;color:var(--purple);";
+      label = "";
       const n = (p.content||"").length;
       body = `<details class="ev-collapse"><summary><span class="ev-label">thinking</span>&nbsp;<span style="color:var(--muted2);">(${n} chars)</span></summary><pre>${esc(p.content||"")}</pre></details>`;
     } else if (t === "agent.message") {
@@ -335,8 +338,9 @@
       }
     } else if (t === "agent.plan") {
       icon = "📋"; iconStyle = "background:#fef3c7;color:#b45309;";
-      label = "plan";
-      body = `<div class="plan-body">${esc(p.plan||"")}</div>`;
+      label = "";
+      const planText = p.plan || "";
+      body = `<details class="ev-collapse"><summary><span class="ev-label">plan</span>&nbsp;<span style="color:var(--muted2);">(${planText.length} chars)</span></summary><div class="plan-body" style="margin-top:6px;">${esc(planText)}</div></details>`;
     } else if (t === "agent.tool_call") {
       icon = "⚙"; iconStyle = "background:#cffafe;color:var(--teal);";
       label = "tool call";

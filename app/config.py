@@ -53,6 +53,7 @@ class Settings(BaseSettings):
     langfuse_secret_key: str = ""
 
     max_agent_turns: int = 25
+    max_completion_tokens: int = 32768
     max_video_duration_sec: int = 600
     min_reel_duration_sec: float = 10.0
     max_reel_duration_sec: float = 60.0

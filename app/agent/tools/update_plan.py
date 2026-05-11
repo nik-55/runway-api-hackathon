@@ -9,4 +9,4 @@ async def call(ctx: SessionCtx, *, plan: str) -> dict:
     text = (plan or "").strip()
     publish(ctx.session_id, "agent.plan", {"plan": text})
     log.info("plan updated for session %s (%d chars)", ctx.session_id, len(text))
-    return {"ok": True, "plan": text}
+    return {"ok": True}

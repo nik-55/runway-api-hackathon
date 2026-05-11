@@ -16,7 +16,6 @@ COPY requirements.txt /app/requirements.txt
 RUN pip install --no-cache-dir -r requirements.txt
 
 COPY app /app/app
-COPY final_idea.md plan.md /app/
 
 RUN mkdir -p /app/media /app/logs /app/data
 

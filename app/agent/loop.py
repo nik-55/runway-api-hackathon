@@ -32,7 +32,7 @@ def _chat(messages: list[dict]) -> Any:
         tools=TOOL_SCHEMAS,
         tool_choice="required",
         temperature=0.5,
-        max_completion_tokens=32768,
+        max_completion_tokens=settings.max_completion_tokens,
         reasoning_effort="high",
     )
 

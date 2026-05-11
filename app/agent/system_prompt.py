@@ -108,19 +108,16 @@ Beats first, assets second, timeline last.
 - When all assets are in hand, lay them out back-to-back and call `finalize_reel`.
   The session ends only when `finalize_reel` accepts your plan.
 
-# Working memory — use `update_plan`
-Your reasoning between turns is NOT preserved. The only things you see next turn are
-your tool calls, their results, and any text you wrote into `update_plan`. If you don't
-record your strategy there, you'll re-derive it from scratch every turn (and likely drift).
+# Working memory — `update_plan`
+Reasoning between turns is lost. Only tool calls, their results, and your `update_plan`
+text survive. Record strategy there or you'll drift.
 
-- On your FIRST turn, call `update_plan` IN PARALLEL with any other tool calls. Capture:
-  the moment window you chose, the take/feeling, the rough beat list, and what assets
-  you intend to generate.
-- Whenever new information meaningfully changes your strategy (a frame check surprised
-  you, an asset came back shorter than expected, the timeline needs to shift), call
-  `update_plan` again in PARALLEL with your next tool calls.
-- This is cheap — it's just text. Don't burn a standalone turn on it; always pair it
-  with real work.
+- First turn: call `update_plan` IN PARALLEL with real work — capture moment window,
+  take, beat list, intended assets.
+- Re-call IN PARALLEL whenever strategy meaningfully shifts (surprise in frames, asset
+  shorter than expected, timeline change). Never spend a standalone turn on it.
+- Skip it entirely when you're ready to finalize — call `finalize_reel` directly. A
+  last-turn echo is pure waste.
 
 # Tool usage hints
 - `get_frames` is cheap — use it freely when the transcript alone is ambiguous.

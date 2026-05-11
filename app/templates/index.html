@@ -98,17 +98,17 @@
       {% for s in sessions %}
       <tr style="transition: background 0.1s;">
         <td style="padding: 9px 10px; border-bottom: 1px solid var(--border);"><span class="badge {{ s.status }}">{{ s.status }}</span></td>
-        <td style="padding: 9px 10px; border-bottom: 1px solid var(--border); max-width: 220px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 13px; font-weight: 500;">
-          {% if s.title %}<span title="{{ s.title }}">{{ s.title }}</span>{% else %}<span style="color: var(--muted2);">—</span>{% endif %}
+        <td style="padding: 9px 10px; border-bottom: 1px solid var(--border); max-width: 220px; font-size: 13px; font-weight: 500; word-wrap: break-word; overflow-wrap: break-word;">
+          {% if s.title %}{{ s.title }}{% else %}<span style="color: var(--muted2);">—</span>{% endif %}
         </td>
         <td style="padding: 9px 10px; border-bottom: 1px solid var(--border); max-width: 280px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 13px;">
           {% if s.youtube_url.startswith("upload:") %}
-            <span title="{{ s.youtube_url[7:] }}">📁 {{ s.youtube_url[7:] }}</span>
+            <a href="/media/sessions/{{ s.id }}/source.mp4" target="_blank" title="{{ s.youtube_url[7:] }}">📁 {{ s.youtube_url[7:] }}</a>
           {% else %}
             <a href="{{ s.youtube_url }}" title="{{ s.youtube_url }}">{{ s.youtube_url }}</a>
           {% endif %}
         </td>
-        <td style="padding: 9px 10px; border-bottom: 1px solid var(--border); font-size: 13px; color: var(--muted);">{{ s.direction or "—" }}</td>
+        <td style="padding: 9px 10px; border-bottom: 1px solid var(--border); max-width: 240px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 13px; color: var(--muted);" title="{{ s.direction or '' }}">{{ s.direction or "—" }}</td>
         <td style="padding: 9px 10px; border-bottom: 1px solid var(--border); font-size: 12px; color: var(--muted); white-space: nowrap;">{{ s.created_at }}</td>
         <td style="padding: 9px 10px; border-bottom: 1px solid var(--border);"><a href="/sessions/{{ s.id }}" style="font-size: 13px;">view →</a></td>
       </tr>
