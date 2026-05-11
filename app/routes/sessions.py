@@ -47,6 +47,7 @@ async def create_session(
     direction: str | None = Form(None),
     clip_start: str | None = Form(None),
     clip_end: str | None = Form(None),
+    title: str | None = Form(None),
 ):
     youtube_url = (youtube_url or "").strip()
     has_file = bool(video_file and video_file.filename)
@@ -57,6 +58,7 @@ async def create_session(
         return RedirectResponse("/?error=invalid_url", status_code=303)
 
     direction = (direction or "").strip() or None
+    title = (title or "").strip() or None
     clip_start_sec = _parse_time(clip_start)
     clip_end_sec = _parse_time(clip_end)
 
@@ -88,9 +90,9 @@ async def create_session(
             return RedirectResponse("/?error=too_long", status_code=303)
 
         url_label = f"upload:{video_file.filename}"
-        db.create_session(session_id, url_label, direction, clip_start_sec, clip_end_sec)
+        db.create_session(session_id, url_label, direction, clip_start_sec, clip_end_sec, title)
     else:
-        db.create_session(session_id, youtube_url, direction, clip_start_sec, clip_end_sec)
+        db.create_session(session_id, youtube_url, direction, clip_start_sec, clip_end_sec, title)
 
     asyncio.create_task(runner.run(session_id))
     return RedirectResponse(f"/sessions/{session_id}", status_code=303)

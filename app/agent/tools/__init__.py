@@ -13,6 +13,7 @@ from app.agent.tools import (
     generate_sound_effect,
     get_frames,
     isolate_voice,
+    update_plan,
 )
 from app.config import settings
 
@@ -21,6 +22,30 @@ ToolFn = Callable[..., Awaitable[dict]]
 
 
 TOOL_SCHEMAS: list[dict] = [
+    {
+        "type": "function",
+        "function": {
+            "name": "update_plan",
+            "description": (
+                "Write or revise your working plan as freeform text. This is your scratchpad — "
+                "the model has no other durable memory across turns, so anything you don't capture "
+                "here is forgotten once you call your next tool. Use it to record: the moment you "
+                "picked, the take/angle, which beats land where, what assets you still need, and "
+                "why. Call this in PARALLEL with other tools whenever your strategy changes. "
+                "MUST be called on your first turn alongside any other tools."
+            ),
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "plan": {
+                        "type": "string",
+                        "description": "Current plan as plain text. Replaces any prior plan in your working memory.",
+                    },
+                },
+                "required": ["plan"],
+            },
+        },
+    },
     {
         "type": "function",
         "function": {
@@ -152,6 +177,7 @@ TOOL_SCHEMAS: list[dict] = [
 
 
 TOOL_REGISTRY: dict[str, ToolFn] = {
+    "update_plan": update_plan.call,
     "get_frames": get_frames.call,
     "generate_reaction_image": generate_reaction_image.call,
     "generate_animated_reaction": generate_animated_reaction.call,

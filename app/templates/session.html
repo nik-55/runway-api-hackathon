@@ -35,9 +35,23 @@
   /* agent events */
   .ev.agent-thinking .ev-icon  { background: #ede9fe; color: var(--purple); }
   .ev.agent-message .ev-icon   { background: #fff7ed; color: #ea580c; }
+  .ev.agent-plan .ev-icon      { background: #fef3c7; color: #b45309; }
   .ev.agent-tool-call .ev-icon { background: #cffafe; color: var(--teal); }
   .ev.agent-tool-result .ev-icon { background: #f0fdf4; color: var(--green); }
   .ev.agent-final .ev-icon     { background: #fef9c3; color: #ca8a04; }
+
+  /* plan body — sticky-note feel */
+  .plan-body {
+    background: #fffbeb;
+    border: 1px solid #fde68a;
+    border-radius: 6px;
+    padding: 8px 12px;
+    color: #78350f;
+    white-space: pre-wrap;
+    word-break: break-word;
+    line-height: 1.55;
+    font-size: 13px;
+  }
 
   /* session events */
   .ev.session-completed .ev-icon { background: #dcfce7; color: var(--green); }
@@ -92,7 +106,11 @@
 <!-- Session header -->
 <div class="card" style="margin-bottom: 20px;">
   <div style="display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 8px;">
+    {% if session.title %}
+    <h2 style="font-size: 18px;">{{ session.title }}</h2>
+    {% else %}
     <h2 style="font-size: 17px;">Session <code style="font-size: 14px; background: none; border: none; padding: 0;">{{ session.id[:8] }}</code></h2>
+    {% endif %}
     <span id="status-badge" class="badge {{ session.status }}">{{ session.status }}</span>
     {% if session.status in ("failed",) %}
     <form method="post" action="/sessions/{{ session.id }}/resume" style="margin-left: auto;">
@@ -100,6 +118,9 @@
     </form>
     {% endif %}
   </div>
+  {% if session.title %}
+  <div style="font-size: 12px; color: var(--muted2); margin-bottom: 6px;">Session <code style="font-size: 12px; background: none; border: none; padding: 0;">{{ session.id[:8] }}</code></div>
+  {% endif %}
   <div style="font-size: 13px; color: var(--muted); word-break: break-all;">
     {% if session.youtube_url.startswith("upload:") %}
       📁 <a href="/media/sessions/{{ session.id }}/source.mp4" download="{{ session.youtube_url[7:] }}">{{ session.youtube_url[7:] }}</a>
@@ -185,6 +206,14 @@
         {% else %}
         <div class="msg-body">{{ p.content }}</div>
         {% endif %}
+      </div>
+    </div>
+    {% elif ev.type == "agent.plan" %}
+    <div class="ev agent-plan">
+      <div class="ev-icon">📋</div>
+      <div class="ev-body">
+        <div class="ev-label" style="margin-bottom: 4px;">plan</div>
+        <div class="plan-body">{{ p.plan }}</div>
       </div>
     </div>
     {% elif ev.type == "agent.tool_call" %}
@@ -304,6 +333,10 @@
       } else {
         body = `<div class="msg-body">${esc(content)}</div>`;
       }
+    } else if (t === "agent.plan") {
+      icon = "📋"; iconStyle = "background:#fef3c7;color:#b45309;";
+      label = "plan";
+      body = `<div class="plan-body">${esc(p.plan||"")}</div>`;
     } else if (t === "agent.tool_call") {
       icon = "⚙"; iconStyle = "background:#cffafe;color:var(--teal);";
       label = "tool call";
@@ -347,7 +380,7 @@
 
   const lastSeq = {{ events|length }};
   const src = new EventSource(`/sessions/${sid}/events?last_event_id=${lastSeq}`);
-  const types = ["step.started","step.completed","step.failed","agent.thinking","agent.message","agent.tool_call","agent.tool_result","agent.final","agent.turn","agent.started","agent.no_tool_call","agent.error","agent.exhausted","session.started","session.completed","session.failed","heartbeat"];
+  const types = ["step.started","step.completed","step.failed","agent.thinking","agent.message","agent.plan","agent.tool_call","agent.tool_result","agent.final","agent.turn","agent.started","agent.no_tool_call","agent.error","agent.exhausted","session.started","session.completed","session.failed","heartbeat"];
   types.forEach(t => src.addEventListener(t, e => {
     if (t === "heartbeat") return;
     try { render(JSON.parse(e.data)); } catch(err) {}

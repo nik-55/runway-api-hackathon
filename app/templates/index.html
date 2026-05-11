@@ -5,6 +5,8 @@
   <h2 style="margin-bottom: 16px; font-size: 17px;">New reel</h2>
   <form method="post" action="/sessions" enctype="multipart/form-data" id="new-reel-form">
     <div style="display: flex; flex-direction: column; gap: 10px;">
+      <input name="title" placeholder='Title — e.g. "Pandas roast", "CEO interview clip"' style="width: 100%;" maxlength="120">
+
       <input name="youtube_url" placeholder="https://www.youtube.com/watch?v=…" style="width: 100%;">
 
       <div style="display: flex; align-items: center; gap: 10px;">
@@ -85,6 +87,7 @@
     <thead>
       <tr>
         <th style="text-align:left; padding: 6px 10px; font-size: 12px; font-weight: 500; color: var(--muted); border-bottom: 1.5px solid var(--border);">Status</th>
+        <th style="text-align:left; padding: 6px 10px; font-size: 12px; font-weight: 500; color: var(--muted); border-bottom: 1.5px solid var(--border);">Title</th>
         <th style="text-align:left; padding: 6px 10px; font-size: 12px; font-weight: 500; color: var(--muted); border-bottom: 1.5px solid var(--border);">URL</th>
         <th style="text-align:left; padding: 6px 10px; font-size: 12px; font-weight: 500; color: var(--muted); border-bottom: 1.5px solid var(--border);">Direction</th>
         <th style="text-align:left; padding: 6px 10px; font-size: 12px; font-weight: 500; color: var(--muted); border-bottom: 1.5px solid var(--border);">Created</th>
@@ -95,6 +98,9 @@
       {% for s in sessions %}
       <tr style="transition: background 0.1s;">
         <td style="padding: 9px 10px; border-bottom: 1px solid var(--border);"><span class="badge {{ s.status }}">{{ s.status }}</span></td>
+        <td style="padding: 9px 10px; border-bottom: 1px solid var(--border); max-width: 220px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 13px; font-weight: 500;">
+          {% if s.title %}<span title="{{ s.title }}">{{ s.title }}</span>{% else %}<span style="color: var(--muted2);">—</span>{% endif %}
+        </td>
         <td style="padding: 9px 10px; border-bottom: 1px solid var(--border); max-width: 280px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 13px;">
           {% if s.youtube_url.startswith("upload:") %}
             <span title="{{ s.youtube_url[7:] }}">📁 {{ s.youtube_url[7:] }}</span>
