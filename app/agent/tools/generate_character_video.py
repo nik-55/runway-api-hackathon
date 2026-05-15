@@ -17,11 +17,11 @@ _VALID_VOICES = {
 }
 
 
-def _create_and_wait(script: str, avatar_preset: str, voice_preset: str):
+def _create_and_wait(script: str, avatar_id: str, voice_preset: str):
     client = get_client()
     task = client.avatar_videos.create(
         model="gwm1_avatars",
-        avatar={"type": "runway-preset", "presetId": avatar_preset},
+        avatar={"type": "custom", "avatarId": avatar_id},
         speech={
             "type": "text",
             "text": script,
@@ -36,9 +36,9 @@ async def call(ctx: SessionCtx, *, script: str, voice_preset: str | None = None)
     if voice not in _VALID_VOICES:
         log.warning("voice_preset %r not in known set; falling back to default", voice)
         voice = settings.character_voice_preset
-    avatar = settings.character_avatar_preset
-    log.info("avatar_videos: avatar=%s voice=%s script_len=%d", avatar, voice, len(script))
-    task = await asyncio.to_thread(_create_and_wait, script, avatar, voice)
+    avatar_id = settings.character_avatar_preset
+    log.info("avatar_videos: avatar_id=%s voice=%s script_len=%d", avatar_id, voice, len(script))
+    task = await asyncio.to_thread(_create_and_wait, script, avatar_id, voice)
     output = getattr(task, "output", None) or []
     if not output:
         return {"error": "no output URL", "task_id": getattr(task, "id", None)}

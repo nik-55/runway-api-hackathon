@@ -45,8 +45,8 @@ class Settings(BaseSettings):
     stt_model: str = "openai/whisper-large-v3-turbo:fastest"
     hf_token: str = ""
 
-    character_avatar_preset: str = "influencer"
-    character_voice_preset: str = "ruby"
+    character_avatar_preset: str = "96af6db1-6e10-40da-b10d-8e712a826111"
+    character_voice_preset: str = "morgan"
 
     langfuse_host: str = ""
     langfuse_public_key: str = ""

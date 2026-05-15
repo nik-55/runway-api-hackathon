@@ -78,3 +78,15 @@ A 30–45s stretch where the video describes prehistoric humans gathering around
 > Body of the reel uses 1 animated overlay + 1 static reaction image (timed with a sound effect for punchline impact) + 2–3 ambient/wonder sound effects (no record-scratches, no sad-trombones); save the character for ONE closing moment that delivers the final wonder-line at the very end."
 
 ---
+
+## 7. Giant Pandas — Nature's Biggest Mistake (That We Love Anyway)
+
+**Title:** Evolution Handed Pandas Every Disadvantage and They're Still Thriving on Vibes
+
+**What to clip:**
+Pick the most fitting moment from the video.
+
+**Directional comment for agent:**
+> "Use 1 overlay animated meme  → leave a short gap of source footage after the meme clears → then drop an animated video reaction → close with the character commentator delivering the final verdict: first the roast ('Pandas seem like an evolution joke. They eat a horrible non-nutritious plant and can't even digest it well'), then the affectionate pivot ('But they are adorable')."
+
+---
