@@ -54,6 +54,11 @@ async def index(request: Request):
     )
 
 
+@router.get("/demo", response_class=HTMLResponse)
+async def demo(request: Request):
+    return templates.TemplateResponse(request, "demo.html", {})
+
+
 @router.get("/sessions/{session_id}", response_class=HTMLResponse)
 async def session_detail(request: Request, session_id: str):
     sess = db.get_session(session_id)
